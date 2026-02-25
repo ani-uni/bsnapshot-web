@@ -18,6 +18,7 @@ export function UsersPage() {
 
   const [cookiesInput, setCookiesInput] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
 
   const handleRefresh = () => {
     refresh((prev) => prev + 1)
@@ -30,6 +31,7 @@ export function UsersPage() {
     try {
       await loginWithCookies(cookiesInput)
       setCookiesInput('')
+      setIsLoginModalOpen(false)
     } catch (error) {
       console.error('Login failed:', error)
     } finally {
@@ -66,11 +68,18 @@ export function UsersPage() {
         {/* 登录按钮区域 */}
         <div className="mb-8 flex gap-3">
           <Modal>
-            <Button className="flex items-center gap-2" variant="primary">
+            <Button
+              className="flex items-center gap-2"
+              variant="primary"
+              onPress={() => setIsLoginModalOpen(true)}
+            >
               <LogIn className="size-4" />
               通过 Cookies 登录
             </Button>
-            <Modal.Backdrop>
+            <Modal.Backdrop
+              isOpen={isLoginModalOpen}
+              onOpenChange={setIsLoginModalOpen}
+            >
               <Modal.Container>
                 <Modal.Dialog className="sm:max-w-md">
                   <Modal.CloseTrigger />
