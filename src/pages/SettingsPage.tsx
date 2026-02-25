@@ -1,25 +1,25 @@
 'use client'
 
-import { Card, Button, TextField, Label, Input } from '@heroui/react'
+import { Button, Card, Input, Label, TextField } from '@heroui/react'
 import { useAtom, useAtomValue } from 'jotai'
+import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 import {
   apiBaseUrlAtom,
   apiConnectionStatusAtom,
-  testApiConnectionAtom,
-  isServerConnectedAtom,
+  type Config,
   configFormAtom,
   configPatchAtom,
-  saveConfigAtom,
   configSaveStatusAtom,
+  isSavingUrlAtom,
+  isServerConnectedAtom,
+  saveConfigAtom,
+  saveTmdbConfigAtom,
+  tempUrlAtom,
+  testApiConnectionAtom,
   tmdbFormAtom,
   tmdbPatchAtom,
-  saveTmdbConfigAtom,
   tmdbSaveStatusAtom,
-  tempUrlAtom,
-  isSavingUrlAtom,
-  type Config,
 } from '@/atoms/api'
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
 export function SettingsPage() {
   const [apiBaseUrl, setApiBaseUrl] = useAtom(apiBaseUrlAtom)
@@ -495,7 +495,8 @@ export function SettingsPage() {
                       重置 Key
                     </Button>
                     <p className="mt-1 text-xs text-muted">
-                      若您使用已有 API Key 鉴权的 TMDB API 代理，请在 API Key 填写“proxy”。
+                      若您使用已有 API Key 鉴权的 TMDB API 代理，请在 API Key
+                      填写“proxy”。
                     </p>
                   </TextField>
                 </div>

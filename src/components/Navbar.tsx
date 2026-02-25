@@ -1,11 +1,11 @@
 'use client'
 
 import { Button, Label, Link, Switch } from '@heroui/react'
-import { Menu, Moon, Sun, X, Wifi, WifiOff } from 'lucide-react'
-import { useState } from 'react'
-import { useTheme } from '@/hooks/useTheme'
 import { useAtom } from 'jotai'
+import { Menu, Moon, Sun, Wifi, WifiOff, X } from 'lucide-react'
+import { useState } from 'react'
 import { isServerConnectedAtom } from '@/atoms/api'
+import { useTheme } from '@/hooks/useTheme'
 
 const navItems = [
   { href: '/', label: '首页' },

@@ -1,12 +1,12 @@
-'use client';
+'use client'
 
-import { Card, Link } from '@heroui/react';
-import { useAtom } from 'jotai';
-import { isServerConnectedAtom } from '@/atoms/api';
-import { WifiOff, ArrowRight } from 'lucide-react';
+import { Card, Link } from '@heroui/react'
+import { useAtom } from 'jotai'
+import { ArrowRight, WifiOff } from 'lucide-react'
+import { isServerConnectedAtom } from '@/atoms/api'
 
 interface RequireConnectionProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 /**
@@ -14,7 +14,7 @@ interface RequireConnectionProps {
  * 未连接时显示提示信息，连接后显示实际内容
  */
 export function RequireConnection({ children }: RequireConnectionProps) {
-  const [isServerConnected] = useAtom(isServerConnectedAtom);
+  const [isServerConnected] = useAtom(isServerConnectedAtom)
 
   if (!isServerConnected) {
     return (
@@ -38,8 +38,8 @@ export function RequireConnection({ children }: RequireConnectionProps) {
           </Card.Content>
         </Card>
       </div>
-    );
+    )
   }
 
-  return <>{children}</>;
+  return <>{children}</>
 }
