@@ -1,8 +1,9 @@
 'use client'
 
-import { Button, Card, Input, Label, TextField } from '@heroui/react'
+import { Button, Card, Input, Label, TextField, toast } from '@heroui/react'
 import { useAtom, useAtomValue } from 'jotai'
-import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { useEffect } from 'react'
 import {
   apiBaseUrlAtom,
   apiConnectionStatusAtom,
@@ -38,6 +39,33 @@ export function SettingsPage() {
   const [tmdbPatch, setTmdbPatch] = useAtom(tmdbPatchAtom)
   const [, saveTmdbConfig] = useAtom(saveTmdbConfigAtom)
   const tmdbSaveStatus = useAtomValue(tmdbSaveStatusAtom)
+
+  // 监听连接状态并显示 toast
+  useEffect(() => {
+    if (connectionStatus.status === 'success') {
+      toast.success('连接成功')
+    } else if (connectionStatus.status === 'error') {
+      toast.danger(connectionStatus.message || '连接失败')
+    }
+  }, [connectionStatus.status, connectionStatus.message])
+
+  // 监听配置保存状态并显示 toast
+  useEffect(() => {
+    if (configSaveStatus.status === 'success') {
+      toast.success('保存成功')
+    } else if (configSaveStatus.status === 'error') {
+      toast.danger(configSaveStatus.message || '保存失败')
+    }
+  }, [configSaveStatus.status, configSaveStatus.message])
+
+  // 监听 TMDB 保存状态并显示 toast
+  useEffect(() => {
+    if (tmdbSaveStatus.status === 'success') {
+      toast.success('保存成功')
+    } else if (tmdbSaveStatus.status === 'error') {
+      toast.danger(tmdbSaveStatus.message || '保存失败')
+    }
+  }, [tmdbSaveStatus.status, tmdbSaveStatus.message])
 
   const handleSaveConfig = async () => {
     if (!configForm) return
@@ -97,35 +125,6 @@ export function SettingsPage() {
     }
   }
 
-  const getStatusIcon = () => {
-    switch (connectionStatus.status) {
-      case 'testing':
-        return <Loader2 className="size-5 animate-spin text-muted" />
-      case 'success':
-        return <CheckCircle className="size-5 text-success" />
-      case 'error':
-        return <AlertCircle className="size-5 text-danger" />
-      default:
-        return null
-    }
-  }
-
-  const getStatusMessage = () => {
-    if (connectionStatus.message) {
-      return connectionStatus.message
-    }
-    switch (connectionStatus.status) {
-      case 'testing':
-        return '正在测试连接...'
-      case 'success':
-        return '连接成功'
-      case 'error':
-        return '连接失败'
-      default:
-        return null
-    }
-  }
-
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <h1 className="mb-6 text-4xl font-bold">设置</h1>
@@ -157,22 +156,6 @@ export function SettingsPage() {
               <p className="text-xs text-muted">
                 当前使用: <span className="font-mono">{apiBaseUrl}</span>
               </p>
-            </div>
-          )}
-
-          {/* 连接状态提示 */}
-          {connectionStatus.status !== 'idle' && (
-            <div
-              className={`flex items-center gap-2 rounded-md p-3 ${
-                connectionStatus.status === 'success'
-                  ? 'bg-success/10 text-success'
-                  : connectionStatus.status === 'error'
-                    ? 'bg-danger/10 text-danger'
-                    : 'bg-surface-secondary'
-              }`}
-            >
-              {getStatusIcon()}
-              <span className="text-sm">{getStatusMessage()}</span>
             </div>
           )}
         </Card.Content>
@@ -219,25 +202,6 @@ export function SettingsPage() {
               <Card.Description>后端服务的基本配置选项</Card.Description>
             </Card.Header>
             <Card.Content className="space-y-6">
-              {/* 保存状态提示 */}
-              {configSaveStatus.status !== 'idle' &&
-                configSaveStatus.status !== 'saving' && (
-                  <div
-                    className={`flex items-center gap-2 rounded-md p-3 ${
-                      configSaveStatus.status === 'success'
-                        ? 'bg-success/10 text-success'
-                        : 'bg-danger/10 text-danger'
-                    }`}
-                  >
-                    {configSaveStatus.status === 'success' ? (
-                      <CheckCircle className="size-5" />
-                    ) : (
-                      <AlertCircle className="size-5" />
-                    )}
-                    <span className="text-sm">{configSaveStatus.message}</span>
-                  </div>
-                )}
-
               {configForm ? (
                 <>
                   {/* 请求配置 */}
@@ -431,24 +395,6 @@ export function SettingsPage() {
               <Card.Description>The Movie Database API 配置</Card.Description>
             </Card.Header>
             <Card.Content className="space-y-6">
-              {tmdbSaveStatus.status !== 'idle' &&
-                tmdbSaveStatus.status !== 'saving' && (
-                  <div
-                    className={`flex items-center gap-2 rounded-md p-3 ${
-                      tmdbSaveStatus.status === 'success'
-                        ? 'bg-success/10 text-success'
-                        : 'bg-danger/10 text-danger'
-                    }`}
-                  >
-                    {tmdbSaveStatus.status === 'success' ? (
-                      <CheckCircle className="size-5" />
-                    ) : (
-                      <AlertCircle className="size-5" />
-                    )}
-                    <span className="text-sm">{tmdbSaveStatus.message}</span>
-                  </div>
-                )}
-
               {tmdbForm ? (
                 <div className="grid grid-cols-1 gap-4">
                   <TextField>

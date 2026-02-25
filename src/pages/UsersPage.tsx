@@ -1,7 +1,7 @@
-import { Button, Card, Modal, TextArea } from '@heroui/react'
+import { Button, Card, Modal, TextArea, toast } from '@heroui/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { CheckCircle2, LogIn, RefreshCcw, UserCircle2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   loginStatusAtom,
   loginWithCookiesAtom,
@@ -37,6 +37,15 @@ export function UsersPage() {
     }
   }
 
+  // 监听登录状态并显示 toast
+  useEffect(() => {
+    if (loginStatus.status === 'success') {
+      toast.success('登录成功')
+    } else if (loginStatus.status === 'error') {
+      toast.danger(loginStatus.message || '登录失败')
+    }
+  }, [loginStatus.status, loginStatus.message])
+
   return (
     <RequireConnection>
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -53,18 +62,6 @@ export function UsersPage() {
             </Button>
           </div>
         </div>
-
-        {/* 登录状态提示 */}
-        {loginStatus.status === 'success' && (
-          <div className="mb-4 rounded-lg bg-success/10 p-4 text-success">
-            <p>{loginStatus.message}</p>
-          </div>
-        )}
-        {loginStatus.status === 'error' && (
-          <div className="mb-4 rounded-lg bg-danger/10 p-4 text-danger">
-            <p>{loginStatus.message}</p>
-          </div>
-        )}
 
         {/* 登录按钮区域 */}
         <div className="mb-8 flex gap-3">
