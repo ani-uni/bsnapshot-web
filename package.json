@@ -12,6 +12,7 @@
     "@heroui/react": "beta",
     "@heroui/styles": "beta",
     "@tailwindcss/vite": "^4.2.1",
+    "easyqrcodejs": "^4.6.2",
     "jotai": "^2.18.0",
     "lucide-react": "^0.575.0",
     "react": "^19.0.4",

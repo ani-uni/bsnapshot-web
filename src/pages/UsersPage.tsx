@@ -1,7 +1,8 @@
 import { Button, Card, Modal, TextArea, toast } from '@heroui/react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { CheckCircle2, LogIn, RefreshCcw, UserCircle2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { CheckCircle2, LogIn, QrCode, RefreshCcw, UserCircle2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import QRCode from 'easyqrcodejs'
 import {
   loginStatusAtom,
   loginWithCookiesAtom,
@@ -9,16 +10,25 @@ import {
   usersRefreshAtom,
 } from '@/atoms/users'
 import { RequireConnection } from '@/components/RequireConnection'
+import { apiBaseUrlAtom } from '@/atoms/api'
 
 export function UsersPage() {
   const users = useAtomValue(usersAtom)
   const refresh = useSetAtom(usersRefreshAtom)
   const [, loginWithCookies] = useAtom(loginWithCookiesAtom)
   const loginStatus = useAtomValue(loginStatusAtom)
+  const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
 
   const [cookiesInput, setCookiesInput] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false)
+  const [qrUrl, setQrUrl] = useState<string | null>(null)
+  const [qrMsg, setQrMsg] = useState<string | null>(null)
+  const [qrErr, setQrErr] = useState<string | null>(null)
+  const [isQrConnecting, setIsQrConnecting] = useState(false)
+  const qrContainerRef = useRef<HTMLDivElement | null>(null)
+  const qrSocketRef = useRef<WebSocket | null>(null)
 
   const handleRefresh = () => {
     refresh((prev) => prev + 1)
@@ -47,6 +57,108 @@ export function UsersPage() {
       toast.danger(loginStatus.message || '登录失败')
     }
   }, [loginStatus.status, loginStatus.message])
+
+  useEffect(() => {
+    if (!qrUrl || !qrContainerRef.current) return
+
+    qrContainerRef.current.innerHTML = ''
+    // Render QR code for scan login
+    // eslint-disable-next-line no-new
+    new QRCode(qrContainerRef.current, {
+      text: qrUrl,
+      width: 220,
+      height: 220,
+    })
+  }, [qrUrl])
+
+  useEffect(() => {
+    if (!isQrModalOpen) {
+      qrSocketRef.current?.close()
+      qrSocketRef.current = null
+      setQrUrl(null)
+      setQrMsg(null)
+      setQrErr(null)
+      setIsQrConnecting(false)
+      return
+    }
+
+    setIsQrConnecting(true)
+    setQrUrl(null)
+    setQrMsg(null)
+    setQrErr(null)
+
+    let ws: WebSocket | null = null
+
+    try {
+      const base = new URL(apiBaseUrl)
+      const wsUrl = new URL('/api/auth/users/login/qrcode', base)
+      wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:'
+
+      ws = new WebSocket(wsUrl.toString())
+      qrSocketRef.current = ws
+
+      ws.onmessage = (event) => {
+        let data: unknown = event.data
+        try {
+          if (typeof event.data === 'string') {
+            data = JSON.parse(event.data)
+          }
+        } catch {
+          return
+        }
+
+        const payload = data as {
+          gen?: { qrcode_key: string; qrcode_url: string }
+          msg?: string
+          err?: string
+          user?: { mid: string; uname: string; vip: boolean }
+        }
+
+        if (payload.gen?.qrcode_url) {
+          setQrUrl(payload.gen.qrcode_url)
+          setIsQrConnecting(false)
+          return
+        }
+
+        if (payload.msg) {
+          setQrMsg(payload.msg)
+          return
+        }
+
+        if (payload.err) {
+          setQrErr(payload.err)
+          setIsQrConnecting(false)
+          ws?.close()
+          return
+        }
+
+        if (payload.user) {
+          setIsQrConnecting(false)
+          toast.success('扫码登录成功')
+          refresh((prev) => prev + 1)
+          setIsQrModalOpen(false)
+        }
+      }
+
+      ws.onerror = () => {
+        setQrErr('二维码登录连接失败')
+        setIsQrConnecting(false)
+      }
+
+      ws.onclose = () => {
+        if (isQrModalOpen && !qrErr) {
+          setIsQrConnecting(false)
+        }
+      }
+    } catch (error) {
+      setQrErr(error instanceof Error ? error.message : '二维码登录连接失败')
+      setIsQrConnecting(false)
+    }
+
+    return () => {
+      ws?.close()
+    }
+  }, [apiBaseUrl, isQrModalOpen, refresh, qrErr])
 
   return (
     <RequireConnection>
@@ -115,6 +227,62 @@ export function UsersPage() {
                       variant="primary"
                     >
                       {isLoggingIn ? '登录中...' : '登录'}
+                    </Button>
+                  </Modal.Footer>
+                </Modal.Dialog>
+              </Modal.Container>
+            </Modal.Backdrop>
+          </Modal>
+
+          <Modal>
+            <Button
+              className="flex items-center gap-2"
+              variant="secondary"
+              onPress={() => setIsQrModalOpen(true)}
+            >
+              <QrCode className="size-4" />
+              扫码登录
+            </Button>
+            <Modal.Backdrop
+              isOpen={isQrModalOpen}
+              onOpenChange={setIsQrModalOpen}
+            >
+              <Modal.Container>
+                <Modal.Dialog className="sm:max-w-md">
+                  <Modal.CloseTrigger />
+                  <Modal.Header>
+                    <Modal.Heading>扫码登录</Modal.Heading>
+                  </Modal.Header>
+                  <Modal.Body className="gap-4">
+                    <p className="text-sm text-muted">
+                      使用 B 站 App 扫描二维码进行登录。
+                    </p>
+                    <div className="flex flex-col items-center gap-3">
+                      <div
+                        ref={qrContainerRef}
+                        className="flex h-60 w-60 items-center justify-center rounded-lg border border-border"
+                      >
+                        {!qrUrl && (
+                          <span className="text-sm text-muted">
+                            {isQrConnecting ? '正在生成二维码...' : '等待二维码'}
+                          </span>
+                        )}
+                      </div>
+                      {qrMsg && (
+                        <div className="w-full rounded-lg bg-warning/10 p-3 text-warning">
+                          <p className="text-sm">{qrMsg}</p>
+                        </div>
+                      )}
+                      {qrErr && (
+                        <div className="w-full rounded-lg bg-danger/10 p-3 text-danger">
+                          <p className="text-sm">{qrErr}</p>
+                        </div>
+                      )}
+                    </div>
+                  </Modal.Body>
+                  <Modal.Footer>
+                    <Button slot="close" variant="secondary">
+                      关闭
                     </Button>
                   </Modal.Footer>
                 </Modal.Dialog>
