@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@layer utilities {
+  /* Ensure proper theme color transitions */
+  * {
+    @apply transition-colors duration-200;
+  }
+
+  /* Override transition for performance-critical elements */
+  .navbar,
+  button,
+  a {
+    @apply transition-colors duration-150;
+  }
+}
