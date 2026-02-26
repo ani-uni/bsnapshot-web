@@ -1,13 +1,12 @@
-import { Button, Card, Spinner, Surface } from '@heroui/react'
+import { Card, Spinner, Surface } from '@heroui/react'
 import { useAtom } from 'jotai'
-import { useNavigate } from 'react-router-dom'
-import { ArrowRight, CheckCircle, WifiOff } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
 import { isServerConnectedAtom, serverInfoAtom } from '@/atoms/api'
+import { RequireConnection } from '@/components/RequireConnection'
 
 export function HomePage() {
   const [isServerConnected] = useAtom(isServerConnectedAtom)
   const [serverInfo] = useAtom(serverInfoAtom)
-  const navigate = useNavigate()
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -15,26 +14,7 @@ export function HomePage() {
         <h1 className="text-4xl font-bold">欢迎使用 BSnapshot</h1>
 
         {!isServerConnected ? (
-          <Card className="border-2 border-dashed border-border">
-            <Card.Content className="py-16 text-center">
-              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-danger/10">
-                <WifiOff className="size-8 text-danger" />
-              </div>
-              <h2 className="mb-2 text-2xl font-bold">未连接到服务器</h2>
-              <p className="mb-6 text-muted">
-                此页面需要连接到后端服务器才能使用
-              </p>
-              <div className="flex justify-center">
-                <Button
-                  onClick={() => navigate('/settings')}
-                  className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-accent-foreground hover:bg-accent/90"
-                >
-                  前往设置
-                  <ArrowRight className="size-4" />
-                </Button>
-              </div>
-            </Card.Content>
-          </Card>
+          <RequireConnection> </RequireConnection>
         ) : !serverInfo ? (
           <div className="flex justify-center py-12">
             <Spinner color="current" />

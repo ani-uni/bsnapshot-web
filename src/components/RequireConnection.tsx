@@ -1,9 +1,10 @@
 'use client'
 
-import { Card, Link } from '@heroui/react'
+import { Button, Card } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { ArrowRight, WifiOff } from 'lucide-react'
 import { isServerConnectedAtom } from '@/atoms/api'
+import { useNavigate } from 'react-router-dom'
 
 interface RequireConnectionProps {
   children: React.ReactNode
@@ -15,6 +16,7 @@ interface RequireConnectionProps {
  */
 export function RequireConnection({ children }: RequireConnectionProps) {
   const [isServerConnected] = useAtom(isServerConnectedAtom)
+  const navigate = useNavigate()
 
   if (!isServerConnected) {
     return (
@@ -28,13 +30,15 @@ export function RequireConnection({ children }: RequireConnectionProps) {
             <p className="mb-6 text-muted">
               此页面需要连接到后端服务器才能使用
             </p>
-            <Link
-              href="/settings"
-              className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-accent-foreground hover:bg-accent/90"
-            >
-              前往设置
-              <ArrowRight className="size-4" />
-            </Link>
+            <div className="flex justify-center">
+              <Button
+                onClick={() => navigate('/settings')}
+                className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-accent-foreground hover:bg-accent/90"
+              >
+                前往设置
+                <ArrowRight className="size-4" />
+              </Button>
+            </div>
           </Card.Content>
         </Card>
       </div>
