@@ -62,6 +62,49 @@ export const isServerConnectedAtom = unwrap(
 )
 
 /**
+ * 服务器信息数据类型
+ */
+export interface ServerInfo {
+  name: string
+  version: string
+  nitroVersion: string
+}
+
+/**
+ * 获取服务器信息的 atom（基础异步 atom）
+ * 仅在需要时获取一次，不依赖定时刷新
+ */
+const serverInfoBaseAtom = atom(async (get) => {
+  const url = get(apiBaseUrlAtom)
+
+  try {
+    const urlObj = new URL(url)
+    const normalizedUrl = urlObj.origin + urlObj.pathname.replace(/\/$/, '')
+
+    const response = await fetch(`${normalizedUrl}/api`, {
+      method: 'GET',
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    return (await response.json()) as ServerInfo
+  } catch {
+    return null
+  }
+})
+
+/**
+ * 服务器信息 atom，使用 unwrap 处理异步加载
+ * 仅在首页需要时获取，不自动定时刷新
+ */
+export const serverInfoAtom = unwrap(
+  serverInfoBaseAtom,
+  (prev) => prev ?? null,
+)
+
+/**
  * 测试 API 连接的 atom
  */
 export const testApiConnectionAtom = atom(
