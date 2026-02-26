@@ -23,7 +23,18 @@ export const apiConnectionStatusAtom = atom<{
 /**
  * Server 连接状态 atom（每次加载时自动检测）
  */
+// 定时触发器（每10秒递增一次）
+export const serverPingRefreshAtom = atom(0)
+serverPingRefreshAtom.onMount = (set) => {
+  // 立即触发一次检查，然后每10秒触发
+  set((n) => n + 1)
+  const iv = setInterval(() => set((n) => n + 1), 10000)
+  return () => clearInterval(iv)
+}
+
 const isServerConnectedBaseAtom = atom(async (get) => {
+  // 依赖 refresh 以实现定时检查
+  get(serverPingRefreshAtom)
   const url = get(apiBaseUrlAtom)
 
   try {
@@ -31,11 +42,8 @@ const isServerConnectedBaseAtom = atom(async (get) => {
     const urlObj = new URL(url)
     const normalizedUrl = urlObj.origin + urlObj.pathname.replace(/\/$/, '')
 
-    const response = await fetch(`${normalizedUrl}/api/config`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const response = await fetch(`${normalizedUrl}/api`, {
+      method: 'HEAD',
     })
 
     return response.ok
