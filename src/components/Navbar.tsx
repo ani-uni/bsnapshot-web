@@ -1,8 +1,8 @@
 'use client'
 
-import { Button, Label, Link, Switch } from '@heroui/react'
+import { Button, ButtonGroup, Link } from '@heroui/react'
 import { useAtom } from 'jotai'
-import { Menu, Moon, Sun, Wifi, WifiOff, X } from 'lucide-react'
+import { Menu, Monitor, Moon, Sun, Wifi, WifiOff, X } from 'lucide-react'
 import { useState } from 'react'
 import { isServerConnectedAtom } from '@/atoms/api'
 import { useTheme } from '@/hooks/useTheme'
@@ -17,7 +17,7 @@ const navItems = [
 ]
 
 export function Navbar() {
-  const { isDark, toggleTheme } = useTheme()
+  const { themeMode, setTheme } = useTheme()
   const [isOpen, setIsOpen] = useState(false)
   const [isServerConnected] = useAtom(isServerConnectedAtom)
 
@@ -57,6 +57,22 @@ export function Navbar() {
           <div className="flex items-center gap-4">
             {/* Server Connection Status */}
             <div
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium md:hidden ${
+                isServerConnected
+                  ? 'bg-success/10 text-success'
+                  : 'bg-danger/10 text-danger'
+              }`}
+              title={isServerConnected ? 'Server 已连接' : 'Server 未连接'}
+            >
+              {isServerConnected ? (
+                <Wifi className="size-3.5" />
+              ) : (
+                <WifiOff className="size-3.5" />
+              )}
+            </div>
+
+            {/* Server Connection Status - Desktop only */}
+            <div
               className={`hidden items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium sm:flex ${
                 isServerConnected
                   ? 'bg-success/10 text-success'
@@ -75,26 +91,32 @@ export function Navbar() {
             </div>
 
             {/* Theme Switch */}
-            <div className="hidden items-center gap-2 sm:flex">
-              <Switch
-                aria-label="Toggle dark mode"
-                isSelected={isDark}
-                onChange={toggleTheme}
-                size="sm"
+            <ButtonGroup size="sm" variant="outline" className="hidden sm:flex">
+              <Button
+                isIconOnly
+                onPress={() => setTheme('light')}
+                aria-label="切换到日间模式"
+                variant={themeMode === 'light' ? 'secondary' : 'tertiary'}
               >
-                <Switch.Control>
-                  <Switch.Thumb>
-                    <Switch.Icon>
-                      {isDark ? (
-                        <Moon className="size-3" />
-                      ) : (
-                        <Sun className="size-3" />
-                      )}
-                    </Switch.Icon>
-                  </Switch.Thumb>
-                </Switch.Control>
-              </Switch>
-            </div>
+                <Sun className="size-4" />
+              </Button>
+              <Button
+                isIconOnly
+                onPress={() => setTheme('dark')}
+                aria-label="切换到夜间模式"
+                variant={themeMode === 'dark' ? 'secondary' : 'tertiary'}
+              >
+                <Moon className="size-4" />
+              </Button>
+              <Button
+                isIconOnly
+                onPress={() => setTheme('system')}
+                aria-label="跟随系统"
+                variant={themeMode === 'system' ? 'secondary' : 'tertiary'}
+              >
+                <Monitor className="size-4" />
+              </Button>
+            </ButtonGroup>
 
             {/* Mobile Menu Button */}
             <Button
@@ -130,48 +152,38 @@ export function Navbar() {
                     {item.label}
                   </Link>
                 ))}
-              {/* Mobile Server Status */}
-              <div className="border-t border-border pt-4">
-                <div
-                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${
-                    isServerConnected
-                      ? 'bg-success/10 text-success'
-                      : 'bg-danger/10 text-danger'
-                  }`}
-                >
-                  {isServerConnected ? (
-                    <Wifi className="size-4" />
-                  ) : (
-                    <WifiOff className="size-4" />
-                  )}
-                  <span>Server {isServerConnected ? '已连接' : '未连接'}</span>
-                </div>
-              </div>
               {/* Mobile Theme Toggle */}
-              <div className="border-t border-border pt-4">
-                <Switch
-                  aria-label="Toggle dark mode"
-                  isSelected={isDark}
-                  onChange={toggleTheme}
-                  size="sm"
-                >
-                  <Switch.Control>
-                    <Switch.Thumb>
-                      <Switch.Icon>
-                        {isDark ? (
-                          <Moon className="size-3" />
-                        ) : (
-                          <Sun className="size-3" />
-                        )}
-                      </Switch.Icon>
-                    </Switch.Thumb>
-                  </Switch.Control>
-                  <Switch.Content>
-                    <Label className="text-sm">
-                      {isDark ? '暗色模式' : '亮色模式'}
-                    </Label>
-                  </Switch.Content>
-                </Switch>
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="mb-2 px-3 text-xs font-medium text-muted-foreground">
+                  主题设置
+                </p>
+                <div className="px-3">
+                  <ButtonGroup fullWidth size="sm">
+                    <Button
+                      onPress={() => setTheme('light')}
+                      variant={themeMode === 'light' ? 'secondary' : 'tertiary'}
+                    >
+                      <Sun className="size-4" />
+                      日间
+                    </Button>
+                    <Button
+                      onPress={() => setTheme('dark')}
+                      variant={themeMode === 'dark' ? 'secondary' : 'tertiary'}
+                    >
+                      <Moon className="size-4" />
+                      夜间
+                    </Button>
+                    <Button
+                      onPress={() => setTheme('system')}
+                      variant={
+                        themeMode === 'system' ? 'secondary' : 'tertiary'
+                      }
+                    >
+                      <Monitor className="size-4" />
+                      系统
+                    </Button>
+                  </ButtonGroup>
+                </div>
               </div>
             </div>
           </div>
