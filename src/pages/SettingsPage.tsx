@@ -1,9 +1,18 @@
 'use client'
 
-import { Button, Card, Input, Label, TextField, toast } from '@heroui/react'
+import {
+  Button,
+  Description,
+  Fieldset,
+  Input,
+  Label,
+  Separator,
+  TextField,
+  toast,
+} from '@heroui/react'
 import { useAtom, useAtomValue } from 'jotai'
 import { Loader2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   apiBaseUrlAtom,
   apiConnectionStatusAtom,
@@ -40,14 +49,20 @@ export function SettingsPage() {
   const [, saveTmdbConfig] = useAtom(saveTmdbConfigAtom)
   const tmdbSaveStatus = useAtomValue(tmdbSaveStatusAtom)
 
-  // 监听连接状态并显示 toast
+  const [isManualTest, setIsManualTest] = useState(false)
+
+  // 只在用户手动点击测试时显示连接相关的 toast
   useEffect(() => {
+    if (!isManualTest) return
+
     if (connectionStatus.status === 'success') {
       toast.success('连接成功')
+      setIsManualTest(false)
     } else if (connectionStatus.status === 'error') {
       toast.danger(connectionStatus.message || '连接失败')
+      setIsManualTest(false)
     }
-  }, [connectionStatus.status, connectionStatus.message])
+  }, [connectionStatus.status, connectionStatus.message, isManualTest])
 
   // 监听配置保存状态并显示 toast
   useEffect(() => {
@@ -91,6 +106,7 @@ export function SettingsPage() {
 
   const handleSave = async () => {
     setIsSaving(true)
+    setIsManualTest(true)
 
     // 测试连接，返回格式化后的 URL 或 false
     const result = await testConnection(tempUrl)
@@ -118,6 +134,7 @@ export function SettingsPage() {
   }
 
   const handleTest = async () => {
+    setIsManualTest(true)
     const result = await testConnection(tempUrl)
     // 如果测试成功，更新临时 URL 为格式化后的值
     if (result) {
@@ -126,16 +143,14 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <h1 className="mb-6 text-4xl font-bold">设置</h1>
 
       {/* API 设置部分 */}
-      <Card className="mb-6">
-        <Card.Header>
-          <Card.Title>API 设置</Card.Title>
-          <Card.Description>配置应用连接的后端服务器地址</Card.Description>
-        </Card.Header>
-        <Card.Content className="space-y-4">
+      <Fieldset className="mb-6">
+        <Fieldset.Legend>API 设置</Fieldset.Legend>
+        <Description>配置应用连接的后端服务器地址</Description>
+        <Fieldset.Group className="space-y-4">
           <TextField>
             <Label>API Base URL</Label>
             <Input
@@ -145,9 +160,9 @@ export function SettingsPage() {
               onChange={(e) => setTempUrl(e.target.value)}
               className="font-mono"
             />
-            <p className="mt-1 text-xs text-muted">
+            <Description className="mt-1 text-xs">
               后端服务器的基础 URL 地址（不包含 /api 路径）
-            </p>
+            </Description>
           </TextField>
 
           {/* 当前保存的 URL */}
@@ -158,8 +173,8 @@ export function SettingsPage() {
               </p>
             </div>
           )}
-        </Card.Content>
-        <Card.Footer className="flex gap-3">
+        </Fieldset.Group>
+        <Fieldset.Actions className="flex gap-3">
           <Button
             variant="secondary"
             onPress={handleTest}
@@ -190,187 +205,193 @@ export function SettingsPage() {
               '保存设置'
             )}
           </Button>
-        </Card.Footer>
-      </Card>
+        </Fieldset.Actions>
+      </Fieldset>
 
       {/* 其他设置部分（仅在连接后显示） */}
       {isServerConnected && (
         <>
-          <Card className="mb-6">
-            <Card.Header>
-              <Card.Title>基础设置</Card.Title>
-              <Card.Description>后端服务的基本配置选项</Card.Description>
-            </Card.Header>
-            <Card.Content className="space-y-6">
-              {configForm ? (
-                <>
-                  {/* 请求配置 */}
-                  <div>
-                    <h3 className="mb-3 text-sm font-semibold">请求配置</h3>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <TextField>
-                        <Label>请求间隔 (秒)</Label>
-                        <Input
-                          type="number"
-                          value={configForm.reqIntervalSec}
-                          onChange={(e) =>
-                            handleConfigChange('reqIntervalSec', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                      <TextField>
-                        <Label>请求批次</Label>
-                        <Input
-                          type="number"
-                          value={configForm.reqBatch}
-                          onChange={(e) =>
-                            handleConfigChange('reqBatch', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                    </div>
-                  </div>
+          <Separator className="my-6" />
 
-                  {/* RT 实时弹幕 */}
-                  <div>
-                    <h3 className="mb-3 text-sm font-semibold">RT 实时弹幕</h3>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <TextField>
-                        <Label>调度间隔 (秒)</Label>
-                        <Input
-                          type="number"
-                          value={configForm.rtIntervalSec}
-                          onChange={(e) =>
-                            handleConfigChange('rtIntervalSec', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                      <TextField>
-                        <Label>单次拉取任务数</Label>
-                        <Input
-                          type="number"
-                          value={configForm.rtBatch}
-                          onChange={(e) =>
-                            handleConfigChange('rtBatch', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                    </div>
+          <Fieldset className="mb-6">
+            <Fieldset.Legend>基础设置</Fieldset.Legend>
+            <Description>后端服务的基本配置选项</Description>
+            {configForm ? (
+              <Fieldset.Group className="space-y-6">
+                {/* 请求配置 */}
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold">请求配置</h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField>
+                      <Label>请求间隔 (秒)</Label>
+                      <Input
+                        type="number"
+                        value={configForm.reqIntervalSec}
+                        onChange={(e) =>
+                          handleConfigChange('reqIntervalSec', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                    <TextField>
+                      <Label>请求批次</Label>
+                      <Input
+                        type="number"
+                        value={configForm.reqBatch}
+                        onChange={(e) =>
+                          handleConfigChange('reqBatch', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
                   </div>
-
-                  {/* HIS 历史弹幕 */}
-                  <div>
-                    <h3 className="mb-3 text-sm font-semibold">HIS 历史弹幕</h3>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <TextField>
-                        <Label>调度间隔 (秒)</Label>
-                        <Input
-                          type="number"
-                          value={configForm.hisIntervalSec}
-                          onChange={(e) =>
-                            handleConfigChange('hisIntervalSec', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                      <TextField>
-                        <Label>单次拉取任务数</Label>
-                        <Input
-                          type="number"
-                          value={configForm.hisBatch}
-                          onChange={(e) =>
-                            handleConfigChange('hisBatch', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                    </div>
-                  </div>
-
-                  {/* SP 特殊弹幕 */}
-                  <div>
-                    <h3 className="mb-3 text-sm font-semibold">SP 特殊弹幕</h3>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <TextField>
-                        <Label>调度间隔 (秒)</Label>
-                        <Input
-                          type="number"
-                          value={configForm.spIntervalSec}
-                          onChange={(e) =>
-                            handleConfigChange('spIntervalSec', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                      <TextField>
-                        <Label>单次拉取任务数</Label>
-                        <Input
-                          type="number"
-                          value={configForm.spBatch}
-                          onChange={(e) =>
-                            handleConfigChange('spBatch', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                    </div>
-                  </div>
-
-                  {/* UP 创作中心弹幕 */}
-                  <div>
-                    <h3 className="mb-3 text-sm font-semibold">
-                      UP 创作中心弹幕
-                    </h3>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <TextField>
-                        <Label>调度间隔 (秒)</Label>
-                        <Input
-                          type="number"
-                          value={configForm.upIntervalSec}
-                          onChange={(e) =>
-                            handleConfigChange('upIntervalSec', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                      <TextField>
-                        <Label>单次拉取任务数</Label>
-                        <Input
-                          type="number"
-                          value={configForm.upBatch}
-                          onChange={(e) =>
-                            handleConfigChange('upBatch', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                      <TextField className="sm:col-span-2">
-                        <Label>弹幕池大小</Label>
-                        <Input
-                          type="number"
-                          value={configForm.upPool}
-                          onChange={(e) =>
-                            handleConfigChange('upPool', e.target.value)
-                          }
-                          min={1}
-                        />
-                      </TextField>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="size-6 animate-spin text-muted" />
-                  <span className="ml-2 text-sm text-muted">加载配置中...</span>
                 </div>
-              )}
-            </Card.Content>
+
+                <Separator />
+
+                {/* RT 实时弹幕 */}
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold">RT 实时弹幕</h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField>
+                      <Label>调度间隔 (秒)</Label>
+                      <Input
+                        type="number"
+                        value={configForm.rtIntervalSec}
+                        onChange={(e) =>
+                          handleConfigChange('rtIntervalSec', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                    <TextField>
+                      <Label>单次拉取任务数</Label>
+                      <Input
+                        type="number"
+                        value={configForm.rtBatch}
+                        onChange={(e) =>
+                          handleConfigChange('rtBatch', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* HIS 历史弹幕 */}
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold">HIS 历史弹幕</h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField>
+                      <Label>调度间隔 (秒)</Label>
+                      <Input
+                        type="number"
+                        value={configForm.hisIntervalSec}
+                        onChange={(e) =>
+                          handleConfigChange('hisIntervalSec', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                    <TextField>
+                      <Label>单次拉取任务数</Label>
+                      <Input
+                        type="number"
+                        value={configForm.hisBatch}
+                        onChange={(e) =>
+                          handleConfigChange('hisBatch', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* SP 特殊弹幕 */}
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold">SP 特殊弹幕</h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField>
+                      <Label>调度间隔 (秒)</Label>
+                      <Input
+                        type="number"
+                        value={configForm.spIntervalSec}
+                        onChange={(e) =>
+                          handleConfigChange('spIntervalSec', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                    <TextField>
+                      <Label>单次拉取任务数</Label>
+                      <Input
+                        type="number"
+                        value={configForm.spBatch}
+                        onChange={(e) =>
+                          handleConfigChange('spBatch', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* UP 创作中心弹幕 */}
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold">
+                    UP 创作中心弹幕
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField>
+                      <Label>调度间隔 (秒)</Label>
+                      <Input
+                        type="number"
+                        value={configForm.upIntervalSec}
+                        onChange={(e) =>
+                          handleConfigChange('upIntervalSec', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                    <TextField>
+                      <Label>单次拉取任务数</Label>
+                      <Input
+                        type="number"
+                        value={configForm.upBatch}
+                        onChange={(e) =>
+                          handleConfigChange('upBatch', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                    <TextField className="sm:col-span-2">
+                      <Label>弹幕池大小</Label>
+                      <Input
+                        type="number"
+                        value={configForm.upPool}
+                        onChange={(e) =>
+                          handleConfigChange('upPool', e.target.value)
+                        }
+                        min={1}
+                      />
+                    </TextField>
+                  </div>
+                </div>
+              </Fieldset.Group>
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="size-6 animate-spin text-muted" />
+                <span className="ml-2 text-sm text-muted">加载配置中...</span>
+              </div>
+            )}
             {configForm && (
-              <Card.Footer>
+              <Fieldset.Actions>
                 <Button
                   variant="primary"
                   onPress={handleSaveConfig}
@@ -385,76 +406,74 @@ export function SettingsPage() {
                     '保存基础设置'
                   )}
                 </Button>
-              </Card.Footer>
+              </Fieldset.Actions>
             )}
-          </Card>
+          </Fieldset>
 
-          <Card>
-            <Card.Header>
-              <Card.Title>TMDB 设置</Card.Title>
-              <Card.Description>The Movie Database API 配置</Card.Description>
-            </Card.Header>
-            <Card.Content className="space-y-6">
-              {tmdbForm ? (
-                <div className="grid grid-cols-1 gap-4">
-                  <TextField>
-                    <Label>API URL</Label>
-                    <Input
-                      type="url"
-                      value={tmdbForm.api_url ?? ''}
-                      onChange={(e) =>
-                        handleTmdbChange('api_url', e.target.value)
-                      }
-                      placeholder="https://api.themoviedb.org"
-                      className="font-mono"
-                    />
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onPress={() => {
-                        setTmdbPatch({ ...tmdbPatch, api_url: null })
-                        handleSaveTmdb()
-                      }}
-                    >
-                      重置 URL
-                    </Button>
-                  </TextField>
-                  <TextField>
-                    <Label>API Key</Label>
-                    <Input
-                      type="text"
-                      value={tmdbForm.api_key ?? ''}
-                      onChange={(e) =>
-                        handleTmdbChange('api_key', e.target.value)
-                      }
-                      placeholder="TMDB API Key"
-                      className="font-mono"
-                    />
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onPress={() => {
-                        setTmdbPatch({ ...tmdbPatch, api_key: null })
-                        handleSaveTmdb()
-                      }}
-                    >
-                      重置 Key
-                    </Button>
-                    <p className="mt-1 text-xs text-muted">
-                      若您使用已有 API Key 鉴权的 TMDB API 代理，请在 API Key
-                      填写“proxy”。
-                    </p>
-                  </TextField>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="size-6 animate-spin text-muted" />
-                  <span className="ml-2 text-sm text-muted">加载配置中...</span>
-                </div>
-              )}
-            </Card.Content>
+          <Separator className="my-6" />
+
+          <Fieldset>
+            <Fieldset.Legend>TMDB 设置</Fieldset.Legend>
+            <Description>The Movie Database API 配置</Description>
+            {tmdbForm ? (
+              <Fieldset.Group className="space-y-6">
+                <TextField>
+                  <Label>API URL</Label>
+                  <Input
+                    type="url"
+                    value={tmdbForm.api_url ?? ''}
+                    onChange={(e) =>
+                      handleTmdbChange('api_url', e.target.value)
+                    }
+                    placeholder="https://api.themoviedb.org"
+                    className="font-mono"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onPress={() => {
+                      setTmdbPatch({ ...tmdbPatch, api_url: null })
+                      handleSaveTmdb()
+                    }}
+                  >
+                    重置 URL
+                  </Button>
+                </TextField>
+                <TextField>
+                  <Label>API Key</Label>
+                  <Input
+                    type="text"
+                    value={tmdbForm.api_key ?? ''}
+                    onChange={(e) =>
+                      handleTmdbChange('api_key', e.target.value)
+                    }
+                    placeholder="TMDB API Key"
+                    className="font-mono"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onPress={() => {
+                      setTmdbPatch({ ...tmdbPatch, api_key: null })
+                      handleSaveTmdb()
+                    }}
+                  >
+                    重置 Key
+                  </Button>
+                  <Description className="mt-1 text-xs">
+                    若您使用已有 API Key 鉴权的 TMDB API 代理，请在 API Key
+                    填写"proxy"。
+                  </Description>
+                </TextField>
+              </Fieldset.Group>
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="size-6 animate-spin text-muted" />
+                <span className="ml-2 text-sm text-muted">加载配置中...</span>
+              </div>
+            )}
             {tmdbForm && (
-              <Card.Footer>
+              <Fieldset.Actions>
                 <Button
                   variant="primary"
                   onPress={handleSaveTmdb}
@@ -469,21 +488,21 @@ export function SettingsPage() {
                     '保存 TMDB 设置'
                   )}
                 </Button>
-              </Card.Footer>
+              </Fieldset.Actions>
             )}
-          </Card>
+          </Fieldset>
         </>
       )}
 
       {/* 未连接提示 */}
       {!isServerConnected && (
-        <Card className="border-dashed border-2 border-border">
-          <Card.Content className="py-8 text-center">
+        <Fieldset className="border-dashed border-2 border-border">
+          <Fieldset.Group className="py-8 text-center">
             <p className="text-sm text-muted">
               请先配置并连接到后端服务器以解锁更多设置选项
             </p>
-          </Card.Content>
-        </Card>
+          </Fieldset.Group>
+        </Fieldset>
       )}
     </div>
   )
