@@ -1,4 +1,5 @@
-import { Button, Card, Label, Switch } from '@heroui/react'
+import type { Key } from '@heroui/react'
+import { Button, Card, Label, ListBox, Select, Switch } from '@heroui/react'
 import { useAtomValue } from 'jotai'
 import { RefreshCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -19,10 +20,14 @@ export function LogsPage() {
   const [isConnecting, setIsConnecting] = useState(true)
   const [isClearing, setIsClearing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [levelFilter, setLevelFilter] = useState<Key>('all')
   const wsRef = useRef<WebSocket | null>(null)
   const pendingAutoRefreshRef = useRef(false)
 
-  const sortedEvents = useMemo(() => events, [events])
+  const sortedEvents = useMemo(() => {
+    if (levelFilter === 'all') return events
+    return events.filter((event) => event.type === String(levelFilter))
+  }, [events, levelFilter])
 
   const mergeEvents = useCallback((incoming: LogEvent[]) => {
     setEvents((prev) => {
@@ -101,7 +106,7 @@ export function LogsPage() {
 
       ws.onmessage = (event) => {
         if (!isMounted || wsRef.current !== ws) return
-        
+
         let data: unknown = event.data
         try {
           if (typeof event.data === 'string') {
@@ -113,8 +118,12 @@ export function LogsPage() {
 
         // 检查服务端返回的错误
         if (data && typeof data === 'object') {
-          const response = data as { success?: boolean; error?: string; events?: LogEvent[] }
-          
+          const response = data as {
+            success?: boolean
+            error?: string
+            events?: LogEvent[]
+          }
+
           // 如果 success 为 false 或存在 error 字段，显示错误
           if (response.success === false || response.error) {
             setError(response.error || '服务器返回错误')
@@ -179,6 +188,38 @@ export function LogsPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-4xl font-bold">日志</h1>
           <div className="flex items-center gap-3">
+            <Select
+              value={levelFilter}
+              onChange={(value) => setLevelFilter(value || 'all')}
+              className="w-32"
+              placeholder="选择等级"
+            >
+              <Label className="sr-only">日志等级</Label>
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  <ListBox.Item id="all" textValue="全部">
+                    全部
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                  <ListBox.Item id="INFO" textValue="INFO">
+                    INFO
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                  <ListBox.Item id="WARN" textValue="WARN">
+                    WARN
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                  <ListBox.Item id="ERROR" textValue="ERROR">
+                    ERROR
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                </ListBox>
+              </Select.Popover>
+            </Select>
             <Button
               onPress={handleRefresh}
               variant="outline"
