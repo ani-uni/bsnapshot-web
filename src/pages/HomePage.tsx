@@ -2,6 +2,7 @@ import { Card, Spinner, Surface } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { CheckCircle } from 'lucide-react'
 import { serverInfoAtom } from '@/atoms/api'
+import { QueueDisplay } from '@/components/QueueDisplay'
 import { RequireConnection } from '@/components/RequireConnection'
 
 export function HomePage() {
@@ -60,6 +61,8 @@ export function HomePage() {
                   </div>
                 </Card.Content>
               </Card>
+
+              <QueueDisplay />
             </>
           )}
         </RequireConnection>
