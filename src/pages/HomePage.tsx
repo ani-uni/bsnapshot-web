@@ -21,14 +21,11 @@ export function HomePage() {
           ) : (
             <>
               <Card className="border-l-4 border-l-success bg-success/5">
-                <Card.Content className="flex items-center gap-4 py-6">
+                <Card.Content className="flex text-center items-center gap-4 py-6">
                   <CheckCircle className="size-6 text-success shrink-0" />
-                  <div>
-                    <p className="text-sm text-muted">服务器连接状态</p>
-                    <p className="text-lg font-semibold text-foreground">
-                      已连接成功
-                    </p>
-                  </div>
+                  <p className="text-lg font-semibold text-foreground">
+                    服务器已成功连接
+                  </p>
                 </Card.Content>
               </Card>
 
