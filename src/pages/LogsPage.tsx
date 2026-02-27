@@ -32,11 +32,7 @@ export function LogsPage() {
         if (typeof item?.id !== 'number') continue
         map.set(item.id, item)
       }
-      return Array.from(map.values()).sort((a, b) => {
-        const aTime = new Date(a.ctime).getTime()
-        const bTime = new Date(b.ctime).getTime()
-        return aTime - bTime
-      })
+      return Array.from(map.values()).sort((a, b) => b.id - a.id)
     })
   }, [])
 
@@ -86,22 +82,26 @@ export function LogsPage() {
     setError(null)
 
     let ws: WebSocket | null = null
+    let isMounted = true
 
     try {
       const base = new URL(apiBaseUrl)
-      const wsUrl = new URL('/api/events', base)
+      const wsUrl = new URL('/api/events/_ws', base)
       wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:'
 
       ws = new WebSocket(wsUrl.toString())
       wsRef.current = ws
 
       ws.onopen = () => {
+        if (!isMounted || wsRef.current !== ws) return
         setIsConnecting(false)
         pendingAutoRefreshRef.current = true
         sendCmd({ cmd: 'list' })
       }
 
       ws.onmessage = (event) => {
+        if (!isMounted || wsRef.current !== ws) return
+        
         let data: unknown = event.data
         try {
           if (typeof event.data === 'string') {
@@ -109,6 +109,17 @@ export function LogsPage() {
           }
         } catch {
           return
+        }
+
+        // 检查服务端返回的错误
+        if (data && typeof data === 'object') {
+          const response = data as { success?: boolean; error?: string; events?: LogEvent[] }
+          
+          // 如果 success 为 false 或存在 error 字段，显示错误
+          if (response.success === false || response.error) {
+            setError(response.error || '服务器返回错误')
+            return
+          }
         }
 
         let incoming: LogEvent[] | null = null
@@ -134,22 +145,30 @@ export function LogsPage() {
       }
 
       ws.onerror = () => {
+        if (!isMounted || wsRef.current !== ws) return
         setError('日志连接失败')
         setIsConnecting(false)
       }
 
       ws.onclose = () => {
+        if (!isMounted || wsRef.current !== ws) return
         setIsConnecting(false)
         setIsAutoRefresh(false)
       }
     } catch (err) {
+      if (!isMounted) return
       setError(err instanceof Error ? err.message : '日志连接失败')
       setIsConnecting(false)
     }
 
     return () => {
-      ws?.close()
-      wsRef.current = null
+      isMounted = false
+      if (ws) {
+        ws.close()
+      }
+      if (wsRef.current === ws) {
+        wsRef.current = null
+      }
       pendingAutoRefreshRef.current = false
     }
   }, [apiBaseUrl, mergeEvents, sendCmd])
@@ -201,25 +220,50 @@ export function LogsPage() {
               </p>
             ) : (
               <div className="space-y-3">
-                {sortedEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className="rounded-md border border-border/70 bg-content1 px-4 py-3"
-                  >
-                    <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                      <span className="rounded bg-content2 px-2 py-0.5 font-mono">
-                        #{event.id}
-                      </span>
-                      <span>{new Date(event.ctime).toLocaleString()}</span>
-                      {event.type ? (
-                        <span className="rounded bg-content2 px-2 py-0.5">
-                          {event.type}
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="whitespace-pre-wrap text-sm">{event.msg}</p>
-                  </div>
-                ))}
+                {sortedEvents.map((event) => {
+                  const isError = event.type === 'ERROR'
+                  return (
+                    <Card
+                      key={event.id}
+                      className={`${
+                        isError
+                          ? 'border-danger bg-danger/10'
+                          : 'border-border/70 bg-content1'
+                      }`}
+                    >
+                      <Card.Content className="px-4 py-3">
+                        <div
+                          className={`mb-1 flex flex-wrap items-center gap-2 text-xs ${
+                            isError ? 'text-danger' : 'text-muted'
+                          }`}
+                        >
+                          <span className="rounded bg-content2 px-2 py-0.5 font-mono">
+                            #{event.id}
+                          </span>
+                          <span>{new Date(event.ctime).toLocaleString()}</span>
+                          {event.type ? (
+                            <span
+                              className={`rounded px-2 py-0.5 ${
+                                isError
+                                  ? 'bg-danger-soft-hover text-danger'
+                                  : 'bg-content2 text-muted'
+                              }`}
+                            >
+                              {event.type}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p
+                          className={`whitespace-pre-wrap text-sm ${
+                            isError ? 'text-danger' : 'text-foreground'
+                          }`}
+                        >
+                          {event.msg}
+                        </p>
+                      </Card.Content>
+                    </Card>
+                  )
+                })}
               </div>
             )}
           </Card.Content>
