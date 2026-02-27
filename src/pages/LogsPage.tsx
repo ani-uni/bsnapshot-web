@@ -187,7 +187,7 @@ export function LogsPage() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-4xl font-bold">日志</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-row flex-wrap items-center gap-3">
             <Select
               value={levelFilter}
               onChange={(value) => setLevelFilter(value || 'all')}
@@ -252,7 +252,7 @@ export function LogsPage() {
           </div>
         </div>
         <Card className="p-6">
-          <Card.Content>
+          <Card.Content className="max-h-[47.5vh] md:max-h-[55vh] overflow-y-auto">
             {error ? (
               <p className="text-danger">{error}</p>
             ) : sortedEvents.length === 0 ? (
