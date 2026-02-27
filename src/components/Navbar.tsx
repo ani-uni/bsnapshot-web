@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, ButtonGroup, Link } from '@heroui/react'
+import { Button, Link, Tabs } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { Menu, Monitor, Moon, Sun, Wifi, WifiOff, X } from 'lucide-react'
 import { useState } from 'react'
@@ -91,32 +91,30 @@ export function Navbar() {
             </div>
 
             {/* Theme Switch */}
-            <ButtonGroup size="sm" variant="outline" className="hidden sm:flex">
-              <Button
-                isIconOnly
-                onPress={() => setTheme('light')}
-                aria-label="切换到日间模式"
-                variant={themeMode === 'light' ? 'secondary' : 'tertiary'}
-              >
-                <Sun className="size-4" />
-              </Button>
-              <Button
-                isIconOnly
-                onPress={() => setTheme('dark')}
-                aria-label="切换到夜间模式"
-                variant={themeMode === 'dark' ? 'secondary' : 'tertiary'}
-              >
-                <Moon className="size-4" />
-              </Button>
-              <Button
-                isIconOnly
-                onPress={() => setTheme('system')}
-                aria-label="跟随系统"
-                variant={themeMode === 'system' ? 'secondary' : 'tertiary'}
-              >
-                <Monitor className="size-4" />
-              </Button>
-            </ButtonGroup>
+            <Tabs
+              selectedKey={themeMode}
+              onSelectionChange={(key) =>
+                setTheme(key as 'light' | 'dark' | 'system')
+              }
+              className="hidden sm:flex"
+            >
+              <Tabs.ListContainer>
+                <Tabs.List aria-label="主题设置">
+                  <Tabs.Tab id="light">
+                    <Sun className="size-4" />
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                  <Tabs.Tab id="dark">
+                    <Moon className="size-4" />
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                  <Tabs.Tab id="system">
+                    <Monitor className="size-4" />
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                </Tabs.List>
+              </Tabs.ListContainer>
+            </Tabs>
 
             {/* Mobile Menu Button */}
             <Button
@@ -158,31 +156,32 @@ export function Navbar() {
                   主题设置
                 </p>
                 <div className="px-3">
-                  <ButtonGroup fullWidth size="sm">
-                    <Button
-                      onPress={() => setTheme('light')}
-                      variant={themeMode === 'light' ? 'secondary' : 'tertiary'}
-                    >
-                      <Sun className="size-4" />
-                      日间
-                    </Button>
-                    <Button
-                      onPress={() => setTheme('dark')}
-                      variant={themeMode === 'dark' ? 'secondary' : 'tertiary'}
-                    >
-                      <Moon className="size-4" />
-                      夜间
-                    </Button>
-                    <Button
-                      onPress={() => setTheme('system')}
-                      variant={
-                        themeMode === 'system' ? 'secondary' : 'tertiary'
-                      }
-                    >
-                      <Monitor className="size-4" />
-                      系统
-                    </Button>
-                  </ButtonGroup>
+                  <Tabs
+                    selectedKey={themeMode}
+                    onSelectionChange={(key) =>
+                      setTheme(key as 'light' | 'dark' | 'system')
+                    }
+                  >
+                    <Tabs.ListContainer>
+                      <Tabs.List aria-label="主题设置" className="*:gap-1.5">
+                        <Tabs.Tab id="light">
+                          <Sun className="size-4" />
+                          日间
+                          <Tabs.Indicator />
+                        </Tabs.Tab>
+                        <Tabs.Tab id="dark">
+                          <Moon className="size-4" />
+                          夜间
+                          <Tabs.Indicator />
+                        </Tabs.Tab>
+                        <Tabs.Tab id="system">
+                          <Monitor className="size-4" />
+                          跟随系统
+                          <Tabs.Indicator />
+                        </Tabs.Tab>
+                      </Tabs.List>
+                    </Tabs.ListContainer>
+                  </Tabs>
                 </div>
               </div>
             </div>
