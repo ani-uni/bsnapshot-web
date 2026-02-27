@@ -99,10 +99,7 @@ const serverInfoBaseAtom = atom(async (get) => {
  * 服务器信息 atom，使用 unwrap 处理异步加载
  * 仅在首页需要时获取，不自动定时刷新
  */
-export const serverInfoAtom = unwrap(
-  serverInfoBaseAtom,
-  (prev) => prev ?? null,
-)
+export const serverInfoAtom = unwrap(serverInfoBaseAtom, (prev) => prev ?? null)
 
 /**
  * 测试 API 连接的 atom

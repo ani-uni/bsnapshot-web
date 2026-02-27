@@ -32,10 +32,7 @@ const getInitialTheme = (): ThemeMode => {
  * 主题模式 atom，自动持久化到 localStorage
  * 存储 'dark'、'light' 或 'system'
  */
-export const themeAtom = atomWithStorage<ThemeMode>(
-  'theme',
-  getInitialTheme(),
-)
+export const themeAtom = atomWithStorage<ThemeMode>('theme', getInitialTheme())
 
 /**
  * 系统主题偏好 atom
@@ -81,7 +78,7 @@ export const applyThemeAtom = atom(null, (get, set) => {
   const handleChange = (e: MediaQueryListEvent) => {
     const newSystemTheme = e.matches ? 'dark' : 'light'
     set(systemThemeAtom, newSystemTheme)
-    
+
     // 如果当前模式是 system，则应用新的系统主题
     const currentMode = get(themeAtom)
     if (currentMode === 'system') {

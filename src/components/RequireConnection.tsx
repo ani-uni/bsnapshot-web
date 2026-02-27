@@ -3,8 +3,8 @@
 import { Button, Card } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { ArrowRight, WifiOff } from 'lucide-react'
-import { isServerConnectedAtom } from '@/atoms/api'
 import { useNavigate } from 'react-router-dom'
+import { isServerConnectedAtom } from '@/atoms/api'
 
 interface RequireConnectionProps {
   children: React.ReactNode

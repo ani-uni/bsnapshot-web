@@ -6,8 +6,8 @@ import {
   applyThemeAtom,
   isDarkAtom,
   resolvedThemeAtom,
-  themeAtom,
   type ThemeMode,
+  themeAtom,
 } from '@/atoms/theme'
 
 /**
@@ -46,10 +46,10 @@ export function useTheme() {
     setThemeMode(mode)
   }
 
-  return { 
-    themeMode,     // 用户设置的模式：'light' | 'dark' | 'system'
+  return {
+    themeMode, // 用户设置的模式：'light' | 'dark' | 'system'
     resolvedTheme, // 实际应用的主题：'light' | 'dark'
-    isDark,        // 是否为深色模式
-    setTheme,      // 设置主题模式
+    isDark, // 是否为深色模式
+    setTheme, // 设置主题模式
   }
 }

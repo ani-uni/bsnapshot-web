@@ -1,8 +1,15 @@
 import { Button, Card, Modal, TextArea, toast } from '@heroui/react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { CheckCircle2, LogIn, QrCode, RefreshCcw, UserCircle2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
 import QRCode from 'easyqrcodejs'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import {
+  CheckCircle2,
+  LogIn,
+  QrCode,
+  RefreshCcw,
+  UserCircle2,
+} from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { apiBaseUrlAtom } from '@/atoms/api'
 import {
   loginStatusAtom,
   loginWithCookiesAtom,
@@ -10,7 +17,6 @@ import {
   usersRefreshAtom,
 } from '@/atoms/users'
 import { RequireConnection } from '@/components/RequireConnection'
-import { apiBaseUrlAtom } from '@/atoms/api'
 
 export function UsersPage() {
   const users = useAtomValue(usersAtom)
@@ -264,7 +270,9 @@ export function UsersPage() {
                       >
                         {!qrUrl && (
                           <span className="text-sm text-muted">
-                            {isQrConnecting ? '正在生成二维码...' : '等待二维码'}
+                            {isQrConnecting
+                              ? '正在生成二维码...'
+                              : '等待二维码'}
                           </span>
                         )}
                       </div>
