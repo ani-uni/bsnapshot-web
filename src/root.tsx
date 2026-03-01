@@ -1,7 +1,6 @@
 import { Toast } from '@heroui/react'
 import { Provider } from 'jotai'
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router'
-import XLayout from '@/components/Layout'
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,9 +15,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <Toast.Provider />
-        <Provider>
-          <XLayout>{children}</XLayout>
-        </Provider>
+        <Provider>{children}</Provider>
         <ScrollRestoration />
         <Scripts />
       </body>
