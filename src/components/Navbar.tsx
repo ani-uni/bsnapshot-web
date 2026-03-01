@@ -4,7 +4,7 @@ import { Button, Link, Tabs } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { Menu, Monitor, Moon, Sun, Wifi, WifiOff, X } from 'lucide-react'
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router'
 import { isServerConnectedAtom } from '@/atoms/api'
 import { useTheme } from '@/hooks/useTheme'
 

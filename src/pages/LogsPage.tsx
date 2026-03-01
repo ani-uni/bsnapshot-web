@@ -13,7 +13,7 @@ type LogEvent = {
   msg: string
 }
 
-export function LogsPage() {
+export default function LogsPage() {
   const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
   const [events, setEvents] = useState<LogEvent[]>([])
   const [isAutoRefresh, setIsAutoRefresh] = useState(false)

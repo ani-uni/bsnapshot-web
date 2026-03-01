@@ -18,7 +18,7 @@ import {
 } from '@/atoms/users'
 import { RequireConnection } from '@/components/RequireConnection'
 
-export function UsersPage() {
+export default function UsersPage() {
   const users = useAtomValue(usersAtom)
   const refresh = useSetAtom(usersRefreshAtom)
   const [, loginWithCookies] = useAtom(loginWithCookiesAtom)

@@ -1,6 +1,6 @@
 import { Link } from '@heroui/react'
 
-export function NotFoundPage() {
+export default function NotFoundPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="flex flex-col items-center justify-center py-12 text-center">

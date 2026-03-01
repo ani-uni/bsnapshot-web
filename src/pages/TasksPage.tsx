@@ -1,7 +1,7 @@
 import { Card } from '@heroui/react'
 import { RequireConnection } from '@/components/RequireConnection'
 
-export function TasksPage() {
+export default function TasksPage() {
   return (
     <RequireConnection>
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">

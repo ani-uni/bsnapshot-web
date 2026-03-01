@@ -31,7 +31,7 @@ import {
   tmdbSaveStatusAtom,
 } from '@/atoms/api'
 
-export function SettingsPage() {
+export default function SettingsPage() {
   const [apiBaseUrl, setApiBaseUrl] = useAtom(apiBaseUrlAtom)
   const [tempUrl, setTempUrl] = useAtom(tempUrlAtom)
   const [connectionStatus] = useAtom(apiConnectionStatusAtom)

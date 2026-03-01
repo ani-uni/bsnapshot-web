@@ -5,7 +5,7 @@ import { serverInfoAtom } from '@/atoms/api'
 import { QueueDisplay } from '@/components/QueueDisplay'
 import { RequireConnection } from '@/components/RequireConnection'
 
-export function HomePage() {
+export default function HomePage() {
   const [serverInfo] = useAtom(serverInfoAtom)
 
   return (
