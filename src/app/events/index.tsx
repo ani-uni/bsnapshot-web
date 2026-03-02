@@ -1,5 +1,5 @@
 import type { Key } from '@heroui/react'
-import { Button, Card, Label, ListBox, Select, Switch } from '@heroui/react'
+import { Button, Card, Chip, Label, ListBox, Select, Switch, toast } from '@heroui/react'
 import { useAtomValue } from 'jotai'
 import { RefreshCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -19,10 +19,38 @@ export default function LogsPage() {
   const [isAutoRefresh, setIsAutoRefresh] = useState(false)
   const [isConnecting, setIsConnecting] = useState(true)
   const [isClearing, setIsClearing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [levelFilter, setLevelFilter] = useState<Key>('all')
   const wsRef = useRef<WebSocket | null>(null)
   const pendingAutoRefreshRef = useRef(false)
+
+  const getLogStyles = useCallback((type?: string | null) => {
+    switch (type) {
+      case 'ERROR':
+        return {
+          card: 'border-danger bg-danger/10',
+          text: 'text-danger',
+          chipColor: 'danger' as const,
+        }
+      case 'WARNING':
+        return {
+          card: 'border-warning bg-warning/10',
+          text: 'text-warning',
+          chipColor: 'warning' as const,
+        }
+      case 'INFO':
+        return {
+          card: 'border-accent bg-accent/10',
+          text: 'text-accent',
+          chipColor: 'accent' as const,
+        }
+      default:
+        return {
+          card: 'border-border/70 bg-content1',
+          text: 'text-muted',
+          chipColor: 'default' as const,
+        }
+    }
+  }, [])
 
   const sortedEvents = useMemo(() => {
     if (levelFilter === 'all') return events
@@ -53,7 +81,6 @@ export default function LogsPage() {
 
   const handleClear = useCallback(async () => {
     setIsClearing(true)
-    setError(null)
     try {
       const response = await fetch(`${apiBaseUrl}/api/events`, {
         method: 'DELETE',
@@ -62,8 +89,9 @@ export default function LogsPage() {
         throw new Error(`清空失败: ${response.status} ${response.statusText}`)
       }
       setEvents([])
+      toast.success('日志已清空')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '清空失败')
+      toast.danger(err instanceof Error ? err.message : '清空失败')
     } finally {
       setIsClearing(false)
     }
@@ -73,7 +101,7 @@ export default function LogsPage() {
     (next: boolean) => {
       const socket = wsRef.current
       if (!socket || socket.readyState !== WebSocket.OPEN) {
-        setError('日志连接未就绪')
+        toast.danger('日志连接未就绪')
         return
       }
       setIsAutoRefresh(next)
@@ -84,7 +112,6 @@ export default function LogsPage() {
 
   useEffect(() => {
     setIsConnecting(true)
-    setError(null)
 
     let ws: WebSocket | null = null
     let isMounted = true
@@ -126,7 +153,7 @@ export default function LogsPage() {
 
           // 如果 success 为 false 或存在 error 字段，显示错误
           if (response.success === false || response.error) {
-            setError(response.error || '服务器返回错误')
+            toast.danger(response.error || '服务器返回错误')
             return
           }
         }
@@ -155,7 +182,7 @@ export default function LogsPage() {
 
       ws.onerror = () => {
         if (!isMounted || wsRef.current !== ws) return
-        setError('日志连接失败')
+        toast.danger('日志连接失败')
         setIsConnecting(false)
       }
 
@@ -166,7 +193,7 @@ export default function LogsPage() {
       }
     } catch (err) {
       if (!isMounted) return
-      setError(err instanceof Error ? err.message : '日志连接失败')
+      toast.danger(err instanceof Error ? err.message : '日志连接失败')
       setIsConnecting(false)
     }
 
@@ -209,8 +236,8 @@ export default function LogsPage() {
                     INFO
                     <ListBox.ItemIndicator />
                   </ListBox.Item>
-                  <ListBox.Item id="WARN" textValue="WARN">
-                    WARN
+                  <ListBox.Item id="WARNING" textValue="WARNING">
+                    WARNING
                     <ListBox.ItemIndicator />
                   </ListBox.Item>
                   <ListBox.Item id="ERROR" textValue="ERROR">
@@ -253,52 +280,29 @@ export default function LogsPage() {
         </div>
         <Card className="p-6">
           <Card.Content className="max-h-[47.5vh] md:max-h-[55vh] overflow-y-auto">
-            {error ? (
-              <p className="text-danger">{error}</p>
-            ) : sortedEvents.length === 0 ? (
+            {sortedEvents.length === 0 ? (
               <p className="text-muted">
                 {isConnecting ? '正在连接日志服务...' : '暂无日志'}
               </p>
             ) : (
               <div className="space-y-3">
                 {sortedEvents.map((event) => {
-                  const isError = event.type === 'ERROR'
+                  const styles = getLogStyles(event.type)
                   return (
-                    <Card
-                      key={event.id}
-                      className={`${
-                        isError
-                          ? 'border-danger bg-danger/10'
-                          : 'border-border/70 bg-content1'
-                      }`}
-                    >
+                    <Card key={event.id} className={styles.card}>
                       <Card.Content className="px-4 py-3">
-                        <div
-                          className={`mb-1 flex flex-wrap items-center gap-2 text-xs ${
-                            isError ? 'text-danger' : 'text-muted'
-                          }`}
-                        >
-                          <span className="rounded bg-content2 px-2 py-0.5 font-mono">
-                            #{event.id}
-                          </span>
-                          <span>{new Date(event.ctime).toLocaleString()}</span>
-                          {event.type ? (
-                            <span
-                              className={`rounded px-2 py-0.5 ${
-                                isError
-                                  ? 'bg-danger-soft-hover text-danger'
-                                  : 'bg-content2 text-muted'
-                              }`}
-                            >
-                              {event.type}
-                            </span>
-                          ) : null}
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <Chip size="sm" variant="soft">
+                            <Chip.Label className="font-mono">#{event.id}</Chip.Label>
+                          </Chip>
+                          <span className="text-xs text-muted">{new Date(event.ctime).toLocaleString()}</span>
+                          {event.type && (
+                            <Chip size="sm" color={styles.chipColor} variant="soft">
+                              <Chip.Label>{event.type}</Chip.Label>
+                            </Chip>
+                          )}
                         </div>
-                        <p
-                          className={`whitespace-pre-wrap text-sm ${
-                            isError ? 'text-danger' : 'text-foreground'
-                          }`}
-                        >
+                        <p className={`whitespace-pre-wrap text-sm ${event.type === 'ERROR' || event.type === 'WARNING' || event.type === 'INFO' ? styles.text : 'text-foreground'}`}>
                           {event.msg}
                         </p>
                       </Card.Content>
