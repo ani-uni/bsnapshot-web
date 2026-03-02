@@ -1,5 +1,3 @@
-'use client'
-
 import { Button, Link, Tabs } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { Menu, Monitor, Moon, Sun, Wifi, WifiOff, X } from 'lucide-react'

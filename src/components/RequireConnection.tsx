@@ -1,5 +1,3 @@
-'use client'
-
 import { Button, Card } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { ArrowRight, WifiOff } from 'lucide-react'

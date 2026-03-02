@@ -1,33 +1,33 @@
 {
-  "name": "vite-template",
+  "name": "bsnapshot-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "build": "react-router build",
     "dev": "react-router dev",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@heroui/react": "beta",
     "@heroui/styles": "beta",
-    "@react-router/dev": "^7.13.1",
     "@react-router/node": "^7.13.1",
-    "@tailwindcss/vite": "^4.2.1",
     "easyqrcodejs": "^4.6.2",
+    "isbot": "^5.1.35",
     "jotai": "^2.18.0",
     "lucide-react": "^0.575.0",
     "react": "^19.0.4",
     "react-dom": "^19.0.4",
-    "react-router": "^7.13.1",
-    "tailwindcss": "^4.2.1",
-    "isbot": "^5"
+    "react-router": "^7.13.1"
   },
   "devDependencies": {
+    "@react-router/dev": "^7.13.1",
+    "@tailwindcss/vite": "^4.2.1",
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.4",
+    "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-tsconfig-paths": "^6.1.1"
