@@ -30,6 +30,12 @@ export function Navbar() {
     return true
   })
 
+  const matchedRoute = filteredNavItems.find((item) =>
+    item.href === '/'
+      ? location.pathname === '/'
+      : location.pathname.startsWith(item.href),
+  )
+
   return (
     <nav className="sticky top-0 z-50 w-full bg-surface/95 backdrop-blur">
       <div className="relative mx-auto flex flex-col max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -100,15 +106,15 @@ export function Navbar() {
 
         {/* Desktop Menu */}
         <div className="hidden md:flex">
-          <Tabs
-            selectedKey={location.pathname}
-            onSelectionChange={(key) => navigate(key as string)}
-            variant="secondary"
-          >
+          <Tabs selectedKey={matchedRoute?.href ?? '/'} variant="secondary">
             <Tabs.ListContainer>
               <Tabs.List aria-label="页面导航" className="*:min-w-20 *:px-4">
                 {filteredNavItems.map((item) => (
-                  <Tabs.Tab key={item.href} id={item.href}>
+                  <Tabs.Tab
+                    key={item.href}
+                    id={item.href}
+                    onPress={() => navigate(item.href)}
+                  >
                     {item.label}
                     <Tabs.Indicator />
                   </Tabs.Tab>
@@ -122,18 +128,21 @@ export function Navbar() {
           <div className="absolute left-0 right-0 top-full border-t border-border bg-surface py-4 shadow-lg md:hidden">
             <div className="px-3">
               <Tabs
-                selectedKey={location.pathname}
-                onSelectionChange={(key) => {
-                  navigate(key as string)
-                  setIsOpen(false)
-                }}
+                selectedKey={matchedRoute?.href ?? '/'}
                 variant="secondary"
                 orientation="vertical"
               >
                 <Tabs.ListContainer>
                   <Tabs.List aria-label="页面导航">
                     {filteredNavItems.map((item) => (
-                      <Tabs.Tab key={item.href} id={item.href}>
+                      <Tabs.Tab
+                        key={item.href}
+                        id={item.href}
+                        onPress={() => {
+                          navigate(item.href)
+                          setIsOpen(false)
+                        }}
+                      >
                         {item.label}
                         <Tabs.Indicator />
                       </Tabs.Tab>
