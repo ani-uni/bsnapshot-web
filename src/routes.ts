@@ -13,9 +13,8 @@ export default [
     ...prefix('/groups', [
       layout('./app/groups/layout.tsx', [
         index('./app/groups/index.tsx'),
-        route('series/:seriesId', './app/groups/series.tsx'),
-        route('seasons/:seasonId', './app/groups/seasons.tsx'),
-        route('episodes/:episodeId', './app/groups/episodes.tsx'),
+        route('ss/:ssid', './app/groups/ss.tsx'),
+        route('ep/:epid', './app/groups/ep.tsx'),
       ]),
     ]),
     route('/users', './app/users/index.tsx'),

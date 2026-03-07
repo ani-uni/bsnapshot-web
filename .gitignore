@@ -30,3 +30,5 @@ bun.lockb
 
 .react-router/
 build/
+# heroui-agents-md
+.heroui-docs/

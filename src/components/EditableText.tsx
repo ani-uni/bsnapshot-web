@@ -3,7 +3,7 @@ import { Check, Edit, X } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
 interface EditableTextProps {
-  value: string
+  value: string | null
   onSave: (value: string) => Promise<void>
   isDisabled?: boolean
   placeholder?: string
@@ -65,7 +65,7 @@ export default function EditableText({
           <Button isPending={isSaving} onPress={handleSave}>
             {({ isPending }) => (
               <>
-                {!isPending && <Check className="h-4 w-4" />}
+                {!isPending && <Check />}
                 {isPending ? '保存中...' : '保存'}
               </>
             )}
@@ -75,7 +75,7 @@ export default function EditableText({
             isDisabled={isSaving}
             onPress={handleCancel}
           >
-            <X className="h-4 w-4" />
+            <X />
             取消
           </Button>
         </div>
@@ -85,10 +85,10 @@ export default function EditableText({
 
   return (
     <div className="flex items-center justify-between">
-      <div className={displayClassName}>{value}</div>
+      <div className={displayClassName}>{value ?? '-'}</div>
       {!isDisabled && (
         <Button size="sm" variant="tertiary" onPress={handleEdit}>
-          <Edit className="h-4 w-4" />
+          <Edit />
           编辑
         </Button>
       )}
