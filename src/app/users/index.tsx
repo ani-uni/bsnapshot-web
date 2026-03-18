@@ -177,7 +177,7 @@ export default function UsersPage() {
               variant="outline"
               className="flex items-center gap-2"
             >
-              <RefreshCcw className="size-4" />
+              <RefreshCcw />
               刷新
             </Button>
           </div>
@@ -191,7 +191,7 @@ export default function UsersPage() {
               variant="primary"
               onPress={() => setIsLoginModalOpen(true)}
             >
-              <LogIn className="size-4" />
+              <LogIn />
               通过 Cookies 登录
             </Button>
             <Modal.Backdrop
@@ -246,7 +246,7 @@ export default function UsersPage() {
               variant="secondary"
               onPress={() => setIsQrModalOpen(true)}
             >
-              <QrCode className="size-4" />
+              <QrCode />
               扫码登录
             </Button>
             <Modal.Backdrop

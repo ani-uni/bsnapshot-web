@@ -253,7 +253,7 @@ export default function LogsPage() {
               className="flex items-center gap-2"
               isDisabled={isConnecting}
             >
-              <RefreshCcw className="size-4" />
+              <RefreshCcw />
               刷新
             </Button>
             <Button
@@ -262,7 +262,7 @@ export default function LogsPage() {
               className="flex items-center gap-2"
               isDisabled={isConnecting || isClearing}
             >
-              <Trash2 className="size-4" />
+              <Trash2 />
               {isClearing ? '清空中...' : '清空日志'}
             </Button>
             <Switch
