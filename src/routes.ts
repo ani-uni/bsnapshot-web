@@ -9,7 +9,10 @@ import {
 export default [
   layout('./app/layout.tsx', [
     index('./app/index.tsx'),
-    route('/tasks', './app/tasks/index.tsx'),
+    ...prefix('/tasks', [
+      index('./app/tasks/index.tsx'),
+      route('captures/:cid', './app/tasks/capture.tsx'),
+    ]),
     ...prefix('/groups', [
       layout('./app/groups/layout.tsx', [
         index('./app/groups/index.tsx'),
