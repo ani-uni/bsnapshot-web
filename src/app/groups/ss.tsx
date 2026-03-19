@@ -3,17 +3,19 @@ import {
   Button,
   Card,
   Label,
+  Link,
   ListBox,
   Modal,
   NumberField,
   Separator,
   Spinner,
+  Table,
   toast,
 } from '@heroui/react'
 import { useAtom, useAtomValue } from 'jotai'
 import { ChevronRight, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Link as RLink, useNavigate, useParams } from 'react-router'
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
 import EditableText from '@/components/EditableText'
@@ -30,6 +32,14 @@ type EpisodeItem = {
   id: string
   title: string | null
   sn: number | null
+}
+
+type CaptureItem = {
+  cid: string
+  pub: number | null
+  segs: string
+  upMid: string | null
+  upLatest: number | null
 }
 
 type TMDBSeriesInfo = {
@@ -140,6 +150,7 @@ export default function SeasonDetailPage() {
 
   const [season, setSeason] = useState<SeasonDetail | null>(null)
   const [episodeList, setEpisodeList] = useState<EpisodeItem[]>([])
+  const [captureList, setCaptureList] = useState<CaptureItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -185,6 +196,15 @@ export default function SeasonDetailPage() {
         { label: '合集', href: '/groups' },
         { label: displayTitle(data.title) },
       ])
+
+      // Fetch associated captures
+      const capturesRes = await fetch(
+        `${apiBaseUrl}/api/seasons/${ssid}/captures`,
+      )
+      if (capturesRes.ok) {
+        const capturesData = (await capturesRes.json()) as CaptureItem[]
+        setCaptureList(capturesData)
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '未知错误'
       toast.danger(`加载失败：${errorMsg}`)
@@ -755,6 +775,53 @@ export default function SeasonDetailPage() {
               ))}
             </Accordion>
           )}
+        </Card.Content>
+      </Card>
+
+      {/* Captures Card */}
+      <Card className="p-6">
+        <Card.Header>
+          <Card.Title>采集</Card.Title>
+        </Card.Header>
+        <Separator />
+        <Card.Content>
+          <Table variant="secondary">
+            <Table.ScrollContainer>
+              <Table.Content aria-label="采集列表">
+                <Table.Header>
+                  <Table.Column isRowHeader>CID</Table.Column>
+                  <Table.Column>发布时间</Table.Column>
+                  <Table.Column>UP主 mid</Table.Column>
+                </Table.Header>
+                <Table.Body
+                  items={captureList}
+                  renderEmptyState={() => (
+                    <p className="text-muted">暂无关联采集</p>
+                  )}
+                >
+                  {(capture) => (
+                    <Table.Row id={capture.cid}>
+                      <Table.Cell>
+                        <Link>
+                          <RLink to={`/tasks/captures/${capture.cid}`}>
+                            {capture.cid}
+                          </RLink>
+                        </Link>
+                      </Table.Cell>
+                      <Table.Cell>
+                        {capture.pub != null
+                          ? new Date(capture.pub).toLocaleString()
+                          : '-'}
+                      </Table.Cell>
+                      <Table.Cell className="font-mono">
+                        {capture.upMid ?? '-'}
+                      </Table.Cell>
+                    </Table.Row>
+                  )}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
+          </Table>
         </Card.Content>
       </Card>
 

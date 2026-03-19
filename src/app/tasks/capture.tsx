@@ -13,7 +13,7 @@ import { useAtomValue } from 'jotai'
 import { Trash2 } from 'lucide-react'
 import { Duration } from 'luxon'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Link as RLink, useNavigate, useParams } from 'react-router'
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { RequireConnection } from '@/components/RequireConnection'
 
@@ -511,8 +511,9 @@ export default function CaptureDetailPage() {
                             clip.episodeId &&
                             episodeColorMap.has(clip.episodeId)
                               ? {
-                                  backgroundColor:
-                                    episodeColorMap.get(clip.episodeId),
+                                  backgroundColor: episodeColorMap.get(
+                                    clip.episodeId,
+                                  ),
                                 }
                               : undefined
                           }
@@ -527,8 +528,10 @@ export default function CaptureDetailPage() {
                           </Table.Cell>
                           <Table.Cell>
                             {clip.episodeId ? (
-                              <Link href={`/groups/ep/${clip.episodeId}`}>
-                                {clip.episodeId}
+                              <Link>
+                                <RLink to={`/groups/ep/${clip.episodeId}`}>
+                                  {clip.episodeId}
+                                </RLink>
                               </Link>
                             ) : (
                               '-'

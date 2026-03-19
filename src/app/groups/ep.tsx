@@ -1,16 +1,17 @@
 import {
-  Accordion,
   Button,
   Card,
+  Link,
   Modal,
   Separator,
   Spinner,
+  Table,
   toast,
 } from '@heroui/react'
 import { useAtom, useAtomValue } from 'jotai'
-import { ChevronRight, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Link as RLink, useNavigate, useParams } from 'react-router'
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
 import EditableText from '@/components/EditableText'
@@ -80,9 +81,12 @@ type BgmTvEpisodeInfo = {
   subject_id: number
 }
 
-type ClipItem = {
-  id: string
-  title: string | null
+type CaptureItem = {
+  cid: string
+  pub: number | null
+  segs: string
+  upMid: string | null
+  upLatest: number | null
 }
 
 function displayTitle(title: string | null | undefined) {
@@ -115,7 +119,7 @@ export default function EpisodeDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [seasonTitle, setSeasonTitle] = useState<string | null>(null)
 
-  const [clipList, setClipList] = useState<ClipItem[]>([])
+  const [captureList, setCaptureList] = useState<CaptureItem[]>([])
 
   const [tmdbInfo, setTmdbInfo] = useState<TMDBEpisodeInfo | null>(null)
   const [bgmtvInfo, setBgmtvInfo] = useState<BgmTvEpisodeInfo | null>(null)
@@ -165,13 +169,13 @@ export default function EpisodeDetailPage() {
       const data = (await res.json()) as EpisodeDetail
       setEpisode(data)
 
-      // Fetch associated clips
-      const clipsRes = await fetch(
-        `${apiBaseUrl}/api/episodes/${epid}/clips`,
+      // Fetch associated captures
+      const capturesRes = await fetch(
+        `${apiBaseUrl}/api/episodes/${epid}/captures`,
       )
-      if (clipsRes.ok) {
-        const clipsData = (await clipsRes.json()) as ClipItem[]
-        setClipList(clipsData)
+      if (capturesRes.ok) {
+        const capturesData = (await capturesRes.json()) as CaptureItem[]
+        setCaptureList(capturesData)
       }
 
       let sTitle: string | null = null
@@ -306,9 +310,7 @@ export default function EpisodeDetailPage() {
               {episode?.seasonId !== 'default' && episode?.seasonId && (
                 <div>
                   <div className="mb-2 text-sm text-muted">所属季度</div>
-                  <div className="text-sm">
-                    {displayTitle(seasonTitle)}
-                  </div>
+                  <div className="text-sm">{displayTitle(seasonTitle)}</div>
                 </div>
               )}
 
@@ -394,33 +396,50 @@ export default function EpisodeDetailPage() {
         </Card>
       )}
 
-      {/* Clips Card */}
+      {/* Captures Card */}
       <Card className="p-6">
         <Card.Header>
-          <Card.Title>片段</Card.Title>
+          <Card.Title>采集</Card.Title>
         </Card.Header>
         <Separator />
         <Card.Content>
-          {clipList.length === 0 ? (
-            <p className="text-muted">暂无关联片段</p>
-          ) : (
-            <Accordion>
-              {clipList.map((clip) => (
-                <Accordion.Item key={clip.id} id={clip.id}>
-                  <Accordion.Heading>
-                    <Accordion.Trigger
-                      onPress={() => navigate(`/groups/clips/${clip.id}`)}
-                    >
-                      {displayTitle(clip.title)}
-                      <Accordion.Indicator>
-                        <ChevronRight />
-                      </Accordion.Indicator>
-                    </Accordion.Trigger>
-                  </Accordion.Heading>
-                </Accordion.Item>
-              ))}
-            </Accordion>
-          )}
+          <Table variant="secondary">
+            <Table.ScrollContainer>
+              <Table.Content aria-label="采集列表">
+                <Table.Header>
+                  <Table.Column isRowHeader>CID</Table.Column>
+                  <Table.Column>发布时间</Table.Column>
+                  <Table.Column>UP主 mid</Table.Column>
+                </Table.Header>
+                <Table.Body
+                  items={captureList}
+                  renderEmptyState={() => (
+                    <p className="text-muted">暂无关联采集</p>
+                  )}
+                >
+                  {(capture) => (
+                    <Table.Row id={capture.cid}>
+                      <Table.Cell>
+                        <Link>
+                          <RLink to={`/tasks/captures/${capture.cid}`}>
+                            {capture.cid}
+                          </RLink>
+                        </Link>
+                      </Table.Cell>
+                      <Table.Cell>
+                        {capture.pub != null
+                          ? new Date(capture.pub).toLocaleString()
+                          : '-'}
+                      </Table.Cell>
+                      <Table.Cell className="font-mono">
+                        {capture.upMid ?? '-'}
+                      </Table.Cell>
+                    </Table.Row>
+                  )}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
+          </Table>
         </Card.Content>
       </Card>
 
