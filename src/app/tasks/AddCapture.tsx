@@ -22,7 +22,7 @@ import {
 } from '@heroui/react'
 import { fromAbsolute } from '@internationalized/date'
 import { Plus, Trash2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ClipTimeInput } from './ClipTimeInput'
 import type {
   EpisodeTreeSection,
@@ -51,6 +51,7 @@ export default function AddCapture({
   } | null>(null)
 
   const [episodeTree, setEpisodeTree] = useState<EpisodeTreeSection[]>([])
+  const [episodeTreeLoaded, setEpisodeTreeLoaded] = useState(false)
   const [episodeSearch, setEpisodeSearch] = useState('')
   const { contains } = useFilter({ sensitivity: 'base' })
 
@@ -93,9 +94,12 @@ export default function AddCapture({
     }
   }, [apiBaseUrl])
 
-  useEffect(() => {
-    void fetchEpisodeTree()
-  }, [fetchEpisodeTree])
+  const ensureEpisodeTree = useCallback(() => {
+    if (!episodeTreeLoaded) {
+      setEpisodeTreeLoaded(true)
+      void fetchEpisodeTree()
+    }
+  }, [episodeTreeLoaded, fetchEpisodeTree])
 
   const handleFetchPregen = async () => {
     const input = idInput.trim()
@@ -635,7 +639,7 @@ export default function AddCapture({
                                 className="w-full sm:w-64"
                                 selectionMode="single"
                                 value={clip[3] ?? null}
-                                onChange={(value) =>
+                                onChange={(value) => {
                                   handleClipEpisodeChange(
                                     pageIndex,
                                     clipIndex,
@@ -643,7 +647,18 @@ export default function AddCapture({
                                       ? String(value)
                                       : null,
                                   )
-                                }
+                                  if (value && value !== '') {
+                                    const section = episodeTree.find((s) =>
+                                      s.episodes.some((ep) => ep.id === String(value)),
+                                    )
+                                    setEpisodeSearch(
+                                      section?.season?.title || '',
+                                    )
+                                  }
+                                }}
+                                onOpenChange={(isOpen) => {
+                                  if (isOpen) ensureEpisodeTree()
+                                }}
                                 variant="secondary"
                                 isDisabled={isChecked}
                               >
