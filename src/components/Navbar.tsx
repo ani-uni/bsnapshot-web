@@ -3,7 +3,7 @@ import { useAtom } from 'jotai'
 import { Menu, Monitor, Moon, Sun, Wifi, WifiOff, X } from 'lucide-react'
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
-import { isServerConnectedAtom } from '@/atoms/api'
+import { isServerConnectedAtom, serverInfoAtom } from '@/atoms/api'
 import { useTheme } from '@/hooks/useTheme'
 
 const navItems = [
@@ -19,6 +19,7 @@ export function Navbar() {
   const { themeMode, setTheme } = useTheme()
   const [isOpen, setIsOpen] = useState(false)
   const [isServerConnected] = useAtom(isServerConnectedAtom)
+  const [serverInfo] = useAtom(serverInfoAtom)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -26,6 +27,9 @@ export function Navbar() {
     // 未连接时，只显示首页和设置
     if (!isServerConnected) {
       return item.href === '/' || item.href === '/settings'
+    }
+    if (!serverInfo?.userExist) {
+      return !(item.href === '/tasks')
     }
     return true
   })

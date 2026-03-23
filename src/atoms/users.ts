@@ -1,6 +1,6 @@
 import { atom } from 'jotai'
 import { unwrap } from 'jotai/utils'
-import { apiBaseUrlAtom } from './api'
+import { apiBaseUrlAtom, serverInfoBaseRefreshAtom } from './api'
 
 /**
  * User 数据类型（不包含敏感信息）
@@ -79,6 +79,9 @@ export const loginWithCookiesAtom = atom(
 
       // 刷新用户列表
       set(usersRefreshAtom, get(usersRefreshAtom) + 1)
+
+      // 更新全局用户存在状态
+      set(serverInfoBaseRefreshAtom, get(serverInfoBaseRefreshAtom) + 1)
 
       return result
     } catch (error) {

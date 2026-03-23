@@ -68,13 +68,17 @@ export interface ServerInfo {
   name: string
   version: string
   nitroVersion: string
+  userExist: boolean
 }
+
+export const serverInfoBaseRefreshAtom = atom(0)
 
 /**
  * 获取服务器信息的 atom（基础异步 atom）
  * 仅在需要时获取一次，不依赖定时刷新
  */
 const serverInfoBaseAtom = atom(async (get) => {
+  get(serverInfoBaseRefreshAtom)
   const url = get(apiBaseUrlAtom)
 
   try {

@@ -1,5 +1,5 @@
 import { RequireConnection } from '@/components/RequireConnection'
-import { QueueDisplay } from './QueueDisplay'
+// import { QueueDisplay } from './QueueDisplay'
 import { ServerInfo } from './ServerInfo'
 
 export default function HomePage() {
@@ -10,7 +10,7 @@ export default function HomePage() {
 
         <RequireConnection>
           <ServerInfo />
-          <QueueDisplay />
+          {/* <QueueDisplay /> */}
         </RequireConnection>
       </div>
     </div>

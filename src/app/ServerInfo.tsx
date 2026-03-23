@@ -1,6 +1,6 @@
 import { Card, Spinner, Surface } from '@heroui/react'
 import { useAtom } from 'jotai'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, TriangleAlert } from 'lucide-react'
 import { serverInfoAtom } from '@/atoms/api'
 
 export function ServerInfo() {
@@ -9,11 +9,17 @@ export function ServerInfo() {
   if (serverInfo)
     return (
       <>
-        <Card className="border-l-4 border-l-success bg-success/5">
+        <Card
+          className={`border-l-4 ${serverInfo.userExist ? 'border-l-success bg-success/5' : 'border-l-warning bg-warning/25'}`}
+        >
           <Card.Content className="flex text-center items-center gap-4 py-6">
-            <CheckCircle className="size-6 text-success shrink-0" />
+            {serverInfo.userExist ? (
+              <CheckCircle className="size-6 text-success shrink-0" />
+            ) : (
+              <TriangleAlert className="size-6 text-warning shrink-0" />
+            )}
             <p className="text-lg font-semibold text-foreground">
-              服务器已成功连接
+              {serverInfo.userExist ? '服务器已成功连接' : '当前无已登录用户'}
             </p>
           </Card.Content>
         </Card>
