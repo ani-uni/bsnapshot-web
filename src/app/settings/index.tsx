@@ -1,14 +1,17 @@
 import {
   Button,
   Description,
+  FieldError,
   Fieldset,
   Input,
   Label,
   Separator,
+  Table,
   TextField,
   toast,
 } from '@heroui/react'
 import { useAtom, useAtomValue } from 'jotai'
+import { RESET } from 'jotai/utils'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {
@@ -28,6 +31,12 @@ import {
   tmdbPatchAtom,
   tmdbSaveStatusAtom,
 } from '@/atoms/api'
+import {
+  DEFAULT_DANMAKU_BATCH_EXPORT_TEMPLATE,
+  DEFAULT_DANMAKU_EXPORT_FILE_NAME_TEMPLATE,
+  danmakuBatchExportTemplateAtom,
+  danmakuExportFileNameTemplateAtom,
+} from '@/atoms/groups/export'
 
 export default function SettingsPage() {
   const [apiBaseUrl, setApiBaseUrl] = useAtom(apiBaseUrlAtom)
@@ -36,6 +45,19 @@ export default function SettingsPage() {
   const [, testConnection] = useAtom(testApiConnectionAtom)
   const [isSaving, setIsSaving] = useAtom(isSavingUrlAtom)
   const [isServerConnected] = useAtom(isServerConnectedAtom)
+  const [danmakuExportFileNameTemplate, setDanmakuExportFileNameTemplate] =
+    useAtom(danmakuExportFileNameTemplateAtom)
+  const [danmakuBatchExportTemplate, setDanmakuBatchExportTemplate] = useAtom(
+    danmakuBatchExportTemplateAtom,
+  )
+  const [danmakuExportErrors, setDanmakuExportErrors] = useState<{
+    defaultFileNameTemplate?: string
+    batchExportTemplate?: string
+  }>({})
+  const [defaultTemplate, setDefaultTemplate] = useState(
+    danmakuExportFileNameTemplate,
+  )
+  const [batchTemplate, setBatchTemplate] = useState(danmakuBatchExportTemplate)
 
   // 使用 atom 管理的 config 表单
   const configForm = useAtomValue(configFormAtom)
@@ -140,6 +162,84 @@ export default function SettingsPage() {
     }
   }
 
+  // 在 useEffect 中同步 atom 变化
+  useEffect(() => {
+    setDefaultTemplate(danmakuExportFileNameTemplate)
+    setBatchTemplate(danmakuBatchExportTemplate)
+  }, [danmakuExportFileNameTemplate, danmakuBatchExportTemplate])
+
+  const validateDanmakuExportTemplate = (values: {
+    defaultFileNameTemplate: string
+    batchExportTemplate: string
+  }) => {
+    const errors: {
+      defaultFileNameTemplate?: string
+      batchExportTemplate?: string
+    } = {}
+
+    if (!values.defaultFileNameTemplate.trim().endsWith('{fmt}')) {
+      errors.defaultFileNameTemplate = '模板必须以 {fmt} 结尾'
+    }
+
+    if (!values.batchExportTemplate.trim().endsWith('{fmt}')) {
+      errors.batchExportTemplate = '模板必须以 {fmt} 结尾'
+    }
+
+    return errors
+  }
+
+  const handleSaveDanmakuExportSettings = () => {
+    const nextValues = {
+      defaultFileNameTemplate: defaultTemplate,
+      batchExportTemplate: batchTemplate,
+    }
+
+    const errors = validateDanmakuExportTemplate(nextValues)
+    setDanmakuExportErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      toast.danger('保存失败：模板必须以 {fmt} 结尾')
+      return
+    }
+
+    const hasChanges =
+      nextValues.defaultFileNameTemplate !== danmakuExportFileNameTemplate ||
+      nextValues.batchExportTemplate !== danmakuBatchExportTemplate
+
+    if (!hasChanges) {
+      toast.success('无变更，无需保存')
+      return
+    }
+
+    if (nextValues.defaultFileNameTemplate !== danmakuExportFileNameTemplate) {
+      setDanmakuExportFileNameTemplate(nextValues.defaultFileNameTemplate)
+    }
+    if (nextValues.batchExportTemplate !== danmakuBatchExportTemplate) {
+      setDanmakuBatchExportTemplate(nextValues.batchExportTemplate)
+    }
+    toast.success('弹幕导出设置已保存')
+  }
+
+  const handleResetDefaultTemplate = () => {
+    setDanmakuExportFileNameTemplate(RESET)
+    setDefaultTemplate(DEFAULT_DANMAKU_EXPORT_FILE_NAME_TEMPLATE)
+    setDanmakuExportErrors((prev) => ({
+      ...prev,
+      defaultFileNameTemplate: undefined,
+    }))
+    toast.success('已重置默认文件名模板')
+  }
+
+  const handleResetBatchTemplate = () => {
+    setDanmakuBatchExportTemplate(RESET)
+    setBatchTemplate(DEFAULT_DANMAKU_BATCH_EXPORT_TEMPLATE)
+    setDanmakuExportErrors((prev) => ({
+      ...prev,
+      batchExportTemplate: undefined,
+    }))
+    toast.success('已重置批量导出模板')
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <h1 className="mb-6 text-4xl font-bold">设置</h1>
@@ -202,6 +302,104 @@ export default function SettingsPage() {
             ) : (
               '保存设置'
             )}
+          </Button>
+        </Fieldset.Actions>
+      </Fieldset>
+
+      {/* 弹幕导出设置 */}
+      <Fieldset className="mb-6">
+        <Fieldset.Legend>弹幕导出</Fieldset.Legend>
+        <Description>自定义弹幕导出的默认文件名与批量导出模板</Description>
+        <Table variant="secondary">
+          <Table.Content aria-label="模板字符说明表">
+            <Table.Header>
+              <Table.Column isRowHeader>模板字符</Table.Column>
+              <Table.Column>说明</Table.Column>
+            </Table.Header>
+            <Table.Body>
+              <Table.Row id="ssid">
+                <Table.Cell className="font-mono">{'{ssid}'}</Table.Cell>
+                <Table.Cell>季度 ID</Table.Cell>
+              </Table.Row>
+              <Table.Row id="ss-title">
+                <Table.Cell className="font-mono">{'{ss_title}'}</Table.Cell>
+                <Table.Cell>季度标题</Table.Cell>
+              </Table.Row>
+              <Table.Row id="epid">
+                <Table.Cell className="font-mono">{'{epid}'}</Table.Cell>
+                <Table.Cell>剧集 ID</Table.Cell>
+              </Table.Row>
+              <Table.Row id="sn">
+                <Table.Cell className="font-mono">{'{sn}'}</Table.Cell>
+                <Table.Cell>剧集集数</Table.Cell>
+              </Table.Row>
+              <Table.Row id="ep-title">
+                <Table.Cell className="font-mono">{'{ep_title}'}</Table.Cell>
+                <Table.Cell>剧集标题</Table.Cell>
+              </Table.Row>
+              <Table.Row id="fmt">
+                <Table.Cell className="font-mono">{'{fmt}'}</Table.Cell>
+                <Table.Cell>导出格式后缀</Table.Cell>
+              </Table.Row>
+            </Table.Body>
+          </Table.Content>
+        </Table>
+        <Fieldset.Group className="space-y-4">
+          <TextField
+            isInvalid={Boolean(danmakuExportErrors.defaultFileNameTemplate)}
+          >
+            <Label>默认文件名</Label>
+            <Input
+              type="text"
+              value={defaultTemplate}
+              onChange={(e) => setDefaultTemplate(e.target.value)}
+              placeholder="{epid}_{fmt}"
+              className="font-mono"
+            />
+            <FieldError>
+              {danmakuExportErrors.defaultFileNameTemplate ?? ''}
+            </FieldError>
+            <Description className="mt-1 text-xs">
+              示例: {'{ss_title}_{sn}-{ep_title}_{fmt}'}
+            </Description>
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={handleResetDefaultTemplate}
+            >
+              重置
+            </Button>
+          </TextField>
+
+          <TextField
+            isInvalid={Boolean(danmakuExportErrors.batchExportTemplate)}
+          >
+            <Label>多季度批量导出路径模板</Label>
+            <Input
+              type="text"
+              value={batchTemplate}
+              onChange={(e) => setBatchTemplate(e.target.value)}
+              placeholder="{ssid}/{epid}_{fmt}"
+              className="font-mono"
+            />
+            <FieldError>
+              {danmakuExportErrors.batchExportTemplate ?? ''}
+            </FieldError>
+            <Description className="mt-1 text-xs">
+              示例: {'{ssid} - {ss_title}/{sn} - {epid} - {ep_title}_{fmt}'}
+            </Description>
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={handleResetBatchTemplate}
+            >
+              重置
+            </Button>
+          </TextField>
+        </Fieldset.Group>
+        <Fieldset.Actions className="flex gap-3">
+          <Button variant="primary" onPress={handleSaveDanmakuExportSettings}>
+            保存弹幕导出设置
           </Button>
         </Fieldset.Actions>
       </Fieldset>

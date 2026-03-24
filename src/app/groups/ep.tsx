@@ -1,6 +1,10 @@
 import {
   Button,
+  ButtonGroup,
   Card,
+  Dropdown,
+  Header,
+  Label,
   Link,
   Modal,
   Separator,
@@ -9,11 +13,16 @@ import {
   toast,
 } from '@heroui/react'
 import { useAtom, useAtomValue } from 'jotai'
-import { Trash2 } from 'lucide-react'
+import { ChevronDown, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
+import { renderFilenameTemplate } from '@/app/groups/filename'
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
+import {
+  danmakuExportFileNameTemplateAtom,
+  lastUsedDanmakuExportFormatAtom,
+} from '@/atoms/groups/export'
 import EditableText from '@/components/EditableText'
 import { TMDB_IMAGE_PREFIX } from '@/constants/tmdb'
 
@@ -89,6 +98,92 @@ type CaptureItem = {
   upLatest: number | null
 }
 
+type DanmakuStats = {
+  count: number
+}
+
+type EpisodeDanmakuStats = {
+  count: number
+  upCount: number
+}
+
+type DanmakuExportFormat =
+  | 'danuni.json'
+  | 'danuni.min.json'
+  | 'danuni.binpb'
+  | 'bili.xml'
+  | 'dplayer.json'
+  | 'artplayer.json'
+  | 'ddplay.json'
+
+type DanmakuExportOption = {
+  format: DanmakuExportFormat
+  label: string
+  fileExt: string
+  group: 'danuni' | 'bili' | 'other'
+}
+
+type DanmakuExportSource = {
+  key: 'normal' | 'up'
+  label: string
+  up: boolean
+  count: number
+}
+
+const DANMAKU_EXPORT_OPTIONS: DanmakuExportOption[] = [
+  {
+    format: 'danuni.json',
+    label: 'DanUni JSON',
+    fileExt: 'danuni.json',
+    group: 'danuni',
+  },
+  {
+    format: 'danuni.min.json',
+    label: 'DanUni Min JSON',
+    fileExt: 'danuni.min.json',
+    group: 'danuni',
+  },
+  {
+    format: 'danuni.binpb',
+    label: 'DanUni BinPB',
+    fileExt: 'danuni.binpb',
+    group: 'danuni',
+  },
+  {
+    format: 'bili.xml',
+    label: 'Bili XML',
+    fileExt: 'bili.xml',
+    group: 'bili',
+  },
+  {
+    format: 'dplayer.json',
+    label: 'DPlayer JSON',
+    fileExt: 'dplayer.json',
+    group: 'other',
+  },
+  {
+    format: 'artplayer.json',
+    label: 'Artplayer JSON',
+    fileExt: 'artplayer.json',
+    group: 'other',
+  },
+  {
+    format: 'ddplay.json',
+    label: 'DDPlay JSON',
+    fileExt: 'ddplay.json',
+    group: 'other',
+  },
+]
+
+const DANMAKU_EXPORT_GROUPS: Array<{
+  key: DanmakuExportOption['group']
+  label: string
+}> = [
+  { key: 'danuni', label: 'DanUni' },
+  { key: 'bili', label: 'bili' },
+  { key: 'other', label: '其它' },
+]
+
 function displayTitle(title: string | null | undefined) {
   return title?.trim() || '未命名'
 }
@@ -117,9 +212,21 @@ export default function EpisodeDetailPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
+  const [exportingKey, setExportingKey] = useState<string | null>(null)
+  const [lastUsedFormat, setLastUsedFormat] = useAtom(
+    lastUsedDanmakuExportFormatAtom,
+  )
+  const danmakuExportFileNameTemplate = useAtomValue(
+    danmakuExportFileNameTemplateAtom,
+  )
   const [seasonTitle, setSeasonTitle] = useState<string | null>(null)
 
   const [captureList, setCaptureList] = useState<CaptureItem[]>([])
+  const [danmakuStats, setDanmakuStats] = useState<EpisodeDanmakuStats | null>(
+    null,
+  )
+  const [isLoadingDanmaku, setIsLoadingDanmaku] = useState(false)
 
   const [tmdbInfo, setTmdbInfo] = useState<TMDBEpisodeInfo | null>(null)
   const [bgmtvInfo, setBgmtvInfo] = useState<BgmTvEpisodeInfo | null>(null)
@@ -176,6 +283,28 @@ export default function EpisodeDetailPage() {
       if (capturesRes.ok) {
         const capturesData = (await capturesRes.json()) as CaptureItem[]
         setCaptureList(capturesData)
+      }
+
+      setIsLoadingDanmaku(true)
+      try {
+        const [danmakuRes, upRes] = await Promise.all([
+          fetch(`${apiBaseUrl}/api/episodes/${epid}/danmaku/stats`),
+          fetch(`${apiBaseUrl}/api/episodes/${epid}/danmaku/stats?up=true`),
+        ])
+
+        const normalData = danmakuRes.ok
+          ? ((await danmakuRes.json()) as DanmakuStats)
+          : { count: 0 }
+        const upData = upRes.ok
+          ? ((await upRes.json()) as DanmakuStats)
+          : { count: 0 }
+
+        setDanmakuStats({
+          count: normalData.count,
+          upCount: upData.count,
+        })
+      } finally {
+        setIsLoadingDanmaku(false)
       }
 
       let sTitle: string | null = null
@@ -260,6 +389,53 @@ export default function EpisodeDetailPage() {
     }
   }
 
+  const handleExportDanmaku = async (
+    option: DanmakuExportOption,
+    source: DanmakuExportSource,
+  ) => {
+    if (!epid || !episode) return
+    const exportKey = `${source.key}:${option.format}`
+    setLastUsedFormat(option.format)
+    setExportingKey(exportKey)
+    try {
+      const exportUrl = `${apiBaseUrl}/api/episodes/${epid}/danmaku/${option.format}${source.up ? '?up=true' : ''}`
+      const response = await fetch(exportUrl)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+
+      // 使用模板生成文件名
+      const generatedFileNameBase = renderFilenameTemplate(
+        danmakuExportFileNameTemplate,
+        { id: episode.id, sn: episode.sn, title: episode.title },
+        {
+          id: episode.seasonId !== 'default' ? episode.seasonId : '',
+          title: episode.seasonId !== 'default' ? seasonTitle : null,
+        },
+        option.fileExt,
+      )
+      const fileName = `${generatedFileNameBase}`
+
+      // 使用 blob 下载
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = fileName
+      anchor.rel = 'noopener'
+      anchor.style.display = 'none'
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+
+      toast.success(`已导出 ${source.label} - ${option.label}`)
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '未知错误'
+      toast.danger(`导出失败：${errorMsg}`)
+    } finally {
+      setExportingKey(null)
+    }
+  }
+
   useEffect(() => {
     void fetchEpisode()
   }, [fetchEpisode])
@@ -269,6 +445,20 @@ export default function EpisodeDetailPage() {
   }
 
   const hasRef = episode?.tmdb != null || episode?.bgmtv != null
+  const exportSources: DanmakuExportSource[] = [
+    {
+      key: 'normal',
+      label: '标准接口',
+      up: false,
+      count: danmakuStats?.count ?? 0,
+    },
+    {
+      key: 'up',
+      label: '创作中心',
+      up: true,
+      count: danmakuStats?.upCount ?? 0,
+    },
+  ]
 
   return (
     <div className="space-y-4">
@@ -314,7 +504,43 @@ export default function EpisodeDetailPage() {
                 </div>
               )}
 
-              <div className="flex justify-end">
+              <div>
+                <div className="mb-2 text-sm text-muted">弹幕数</div>
+                {isLoadingDanmaku ? (
+                  <div className="text-sm text-muted">加载中...</div>
+                ) : (
+                  <div className="flex gap-4 text-sm">
+                    <div>
+                      {danmakuStats?.count !== null &&
+                      danmakuStats?.count !== undefined
+                        ? danmakuStats.count
+                        : '-'}{' '}
+                      <span className="text-xs text-muted">(标准接口)</span>
+                    </div>
+                    <div>
+                      {danmakuStats?.upCount !== null &&
+                      danmakuStats?.upCount !== undefined
+                        ? danmakuStats.upCount
+                        : '-'}{' '}
+                      <span className="text-xs text-muted">(创作中心)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="tertiary"
+                  isDisabled={
+                    isLoading ||
+                    !episode ||
+                    ((danmakuStats?.count ?? 0) === 0 &&
+                      (danmakuStats?.upCount ?? 0) === 0)
+                  }
+                  onPress={() => setShowExportDialog(true)}
+                >
+                  导出弹幕
+                </Button>
                 <Button
                   variant="danger"
                   isPending={isDeleting}
@@ -328,6 +554,124 @@ export default function EpisodeDetailPage() {
           )}
         </Card.Content>
       </Card>
+
+      {/* Export Danmaku Dialog */}
+      <Modal.Backdrop
+        isOpen={showExportDialog}
+        onOpenChange={setShowExportDialog}
+      >
+        <Modal.Container>
+          <Modal.Dialog>
+            <Modal.CloseTrigger />
+            <Modal.Header>
+              <Modal.Heading>导出弹幕</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body>
+              <p className="mb-3 text-sm text-muted">选择导出格式</p>
+              <div className="space-y-4">
+                {exportSources.map((source) => (
+                  <div
+                    key={source.key}
+                    className="rounded border border-border p-3"
+                  >
+                    <div className="mb-2 text-sm font-medium">
+                      {source.label}
+                      <span className="ml-2 text-xs text-muted">
+                        ({source.count})
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {(() => {
+                        const lastUsedOption =
+                          DANMAKU_EXPORT_OPTIONS.find(
+                            (option) => option.format === lastUsedFormat,
+                          ) ?? DANMAKU_EXPORT_OPTIONS[0]
+                        const lastUsedKey = `${source.key}:${lastUsedOption.format}`
+
+                        return (
+                          <ButtonGroup
+                            fullWidth
+                            isDisabled={
+                              exportingKey !== null || source.count === 0
+                            }
+                          >
+                            <Button
+                              className="flex-1"
+                              isPending={exportingKey === lastUsedKey}
+                              onPress={() =>
+                                handleExportDanmaku(lastUsedOption, source)
+                              }
+                            >
+                              导出 {lastUsedOption.label}
+                            </Button>
+
+                            <Dropdown>
+                              <Button
+                                isIconOnly
+                                aria-label={`选择${source.label}导出格式`}
+                                isDisabled={
+                                  exportingKey !== null || source.count === 0
+                                }
+                              >
+                                <ButtonGroup.Separator />
+                                <ChevronDown />
+                              </Button>
+                              <Dropdown.Popover>
+                                <Dropdown.Menu
+                                  selectionMode="single"
+                                  disallowEmptySelection
+                                  selectedKeys={[lastUsedFormat]}
+                                  onAction={(key) => {
+                                    const selectedOption =
+                                      DANMAKU_EXPORT_OPTIONS.find(
+                                        (option) => option.format === key,
+                                      )
+                                    if (!selectedOption) return
+                                    handleExportDanmaku(selectedOption, source)
+                                  }}
+                                >
+                                  {DANMAKU_EXPORT_GROUPS.map((group) => (
+                                    <Dropdown.Section
+                                      key={`${source.key}-${group.key}`}
+                                    >
+                                      <Header>{group.label}</Header>
+                                      {DANMAKU_EXPORT_OPTIONS.filter(
+                                        (option) => option.group === group.key,
+                                      ).map((option) => (
+                                        <Dropdown.Item
+                                          key={option.format}
+                                          id={option.format}
+                                          textValue={option.label}
+                                        >
+                                          <Label>{option.label}</Label>
+                                          <Dropdown.ItemIndicator />
+                                        </Dropdown.Item>
+                                      ))}
+                                    </Dropdown.Section>
+                                  ))}
+                                </Dropdown.Menu>
+                              </Dropdown.Popover>
+                            </Dropdown>
+                          </ButtonGroup>
+                        )
+                      })()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button
+                variant="tertiary"
+                isDisabled={exportingKey !== null}
+                onPress={() => setShowExportDialog(false)}
+              >
+                关闭
+              </Button>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
 
       {/* Ref Info */}
       {hasRef && (
