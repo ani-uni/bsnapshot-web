@@ -14,6 +14,7 @@ import { Trash2 } from 'lucide-react'
 import { Duration } from 'luxon'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
+import LogEventsPanel from '@/app/events/module/LogEventsPanel'
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { RequireConnection } from '@/components/RequireConnection'
 
@@ -642,6 +643,22 @@ export default function CaptureDetailPage() {
                 })}
               </div>
             )}
+          </Card.Content>
+        </Card>
+
+        {/* Events Card */}
+        <Card className="mb-6 p-6">
+          <Card.Header>
+            <Card.Title>日志</Card.Title>
+          </Card.Header>
+          <Separator />
+          <Card.Content>
+            <LogEventsPanel
+              lockedContains={`oid: ${cid}`}
+              showLockedFilterHint
+              showClearButton={false}
+              showReloadAllButton={false}
+            />
           </Card.Content>
         </Card>
 
