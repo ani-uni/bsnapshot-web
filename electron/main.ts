@@ -67,7 +67,7 @@ const startServer = async () => {
       env: {
         ...process.env,
         NITRO_PORT: '45600',
-        // NITRO_HOST: '127.0.0.1',
+        NITRO_HOST: 'localhost',
         // DATABASE_URL: 'file:.data/db/prisma.db',
         DATABASE_URL: `file:${dbPath}`, // 可选，会基于下方USER_DATA_PATH自动生成
         USER_DATA_PATH: app.getPath('userData'),
@@ -75,12 +75,26 @@ const startServer = async () => {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
     },
   )
+  const COLOR = {
+    reset: '\x1b[0m',
+    cyan: '\x1b[36m',
+    red: '\x1b[31m',
+    gray: '\x1b[90m',
+  }
   console.log(dbPath, app.getPath('userData'))
   serverProcess.stdout?.on('data', (data) => {
-    console.log(`[子进程 stdout]: ${data}`)
+    console.info(
+      `${COLOR.cyan}[子进程 stdout] begin${COLOR.reset}`,
+    )
+    console.info(`${COLOR.gray}${data.toString()}${COLOR.reset}`)
+    console.info(`${COLOR.cyan}[子进程 stdout] end${COLOR.reset}`)
   })
   serverProcess.stderr?.on('data', (data) => {
-    console.error(`[子进程 stderr]: ${data}`)
+    console.error(
+      `${COLOR.red}[子进程 stderr] begin${COLOR.reset}`,
+    )
+    console.error(`${COLOR.red}${data.toString()}${COLOR.reset}`)
+    console.error(`${COLOR.red}[子进程 stderr] end${COLOR.reset}`)
   })
   if (mg.r) {
     await new Promise<void>((resolve, reject) => {
