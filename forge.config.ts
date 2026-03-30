@@ -9,10 +9,11 @@ const config: ForgeConfig = {
     asar: true,
     ignore: (file) => {
       if (!file) return false
-      if (file.includes('package.json') || file.includes('LICENSE'))
-        return false
-      if (file.includes('/electron') || file.includes('/build')) return false
-      return true
+      if (file === '/package.json') return false
+      else if (file === '/LICENSE') return false
+      else if (file.startsWith('/electron')) return false
+      else if (file.startsWith('/build')) return false
+      else return true
     },
   },
   makers: [
