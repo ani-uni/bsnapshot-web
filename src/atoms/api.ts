@@ -71,6 +71,7 @@ export interface ServerInfo {
   version: string
   nitroVersion: string
   userExist: boolean
+  dbVersion: number
 }
 
 export const serverInfoBaseRefreshAtom = atom(0)

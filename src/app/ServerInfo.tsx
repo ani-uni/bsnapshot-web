@@ -38,9 +38,19 @@ export function ServerInfo() {
               </Surface>
               <Surface variant="secondary" className="rounded-lg p-4">
                 <p className="text-sm text-muted-foreground">应用版本</p>
-                <p className="text-lg font-semibold text-foreground">
-                  {serverInfo.version}
-                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <p className="text-xl font-bold tracking-tight text-foreground leading-none">
+                    v{serverInfo.version}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className="rounded-md border border-default-300 bg-default-100 px-2 py-1">
+                      db:{serverInfo.dbVersion}
+                    </span>
+                    <span className="rounded-md border border-default-300 bg-default-100 px-2 py-1 tracking-wide">
+                      {import.meta.env.VITE_IS_PACKED ? 'electron' : 'server'}
+                    </span>
+                  </div>
+                </div>
               </Surface>
               <Surface variant="secondary" className="rounded-lg p-4">
                 <p className="text-sm text-muted-foreground">Nitro 版本</p>
