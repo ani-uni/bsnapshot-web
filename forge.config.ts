@@ -7,7 +7,13 @@ import type { ForgeConfig } from '@electron-forge/shared-types'
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    osxSign: {},
+    ignore: (file) => {
+      if (!file) return false
+      if (file.includes('package.json') || file.includes('LICENSE'))
+        return false
+      if (file.includes('/electron') || file.includes('/build')) return false
+      return true
+    },
   },
   makers: [
     new MakerSquirrel(

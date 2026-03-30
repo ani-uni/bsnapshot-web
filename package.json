@@ -4,17 +4,26 @@
   "version": "0.0.1",
   "type": "module",
   "main": "./electron/main.ts",
+  "files": [
+    "package.json",
+    "LICENSE",
+    "electron/**/*",
+    "build/**/*",
+    "backend/.output/server/**/*"
+  ],
   "scripts": {
     "build:frontend": "react-router build",
     "dev:frontend": "react-router dev",
     "preview:frontend": "vite preview",
     "typecheck:frontend": "react-router typegen && tsc",
+    "build:backend": "pnpm -C ./backend build && cp -r ./backend/.output/server/ ./build",
     "dev:electron": "pnpm electron ./electron/main.ts",
     "start:electron": "electron-forge start",
     "package:electron": "electron-forge package",
     "make:electron": "electron-forge make",
     "publish:electron": "electron-forge publish",
-    "dev": "cross-env VITE_IS_PACKED=true pnpm build:frontend && pnpm dev:electron"
+    "dev": "cross-env VITE_IS_PACKED=true pnpm build:frontend && pnpm build:backend && pnpm dev:electron",
+    "build": "cross-env VITE_IS_PACKED=true pnpm build:frontend && pnpm build:backend && pnpm package:electron"
   },
   "dependencies": {
     "@heroui/react": "^3.0.1",
