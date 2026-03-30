@@ -1,4 +1,6 @@
 onlyBuiltDependencies:
   - '@heroui/shared-utils'
   - '@tailwindcss/oxide'
+  - electron
+  - electron-winstaller
   - esbuild

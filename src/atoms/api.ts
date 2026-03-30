@@ -7,7 +7,9 @@ import { atomWithStorage, unwrap } from 'jotai/utils'
  */
 export const apiBaseUrlAtom = atomWithStorage<string>(
   'apiBaseUrl',
-  'http://localhost:3000',
+  import.meta.env.VITE_IS_PACKED
+    ? 'http://localhost:45600'
+    : 'http://localhost:3000',
 )
 
 /**

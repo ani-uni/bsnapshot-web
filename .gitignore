@@ -32,3 +32,5 @@ bun.lockb
 build/
 # heroui-agents-md
 .heroui-docs/
+
+out/

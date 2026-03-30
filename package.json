@@ -1,13 +1,20 @@
 {
   "name": "bsnapshot-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
+  "main": "./electron/main.ts",
   "scripts": {
-    "build": "react-router build",
-    "dev": "react-router dev",
-    "preview": "vite preview",
-    "typecheck": "react-router typegen && tsc"
+    "build:frontend": "react-router build",
+    "dev:frontend": "react-router dev",
+    "preview:frontend": "vite preview",
+    "typecheck:frontend": "react-router typegen && tsc",
+    "dev:electron": "pnpm electron ./electron/main.ts",
+    "start:electron": "electron-forge start",
+    "package:electron": "electron-forge package",
+    "make:electron": "electron-forge make",
+    "publish:electron": "electron-forge publish",
+    "dev": "cross-env VITE_IS_PACKED=true pnpm build:frontend && pnpm dev:electron"
   },
   "dependencies": {
     "@heroui/react": "^3.0.1",
@@ -15,6 +22,7 @@
     "@internationalized/date": "^3.12.0",
     "@react-router/node": "^7.13.2",
     "easyqrcodejs": "^4.6.2",
+    "electron-squirrel-startup": "^1.0.1",
     "isbot": "^5.1.36",
     "jotai": "^2.19.0",
     "lucide-react": "^1.0.1",
@@ -24,12 +32,21 @@
     "react-router": "^7.13.2"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-deb": "^7.11.1",
+    "@electron-forge/maker-squirrel": "^7.11.1",
+    "@electron-forge/maker-zip": "^7.11.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
+    "@electron/rebuild": "^4.0.3",
     "@react-router/dev": "^7.13.2",
     "@tailwindcss/vite": "^4.2.2",
+    "@types/electron-squirrel-startup": "^1.0.2",
     "@types/luxon": "^3.7.1",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "cross-env": "^10.1.0",
+    "electron": "^41.1.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
     "vite": "^8.0.2"
