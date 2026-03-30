@@ -3,6 +3,7 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel'
 import { MakerZIP } from '@electron-forge/maker-zip'
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives'
 import type { ForgeConfig } from '@electron-forge/shared-types'
+import pkg from './backend/package.json' with { type: 'json' }
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -15,16 +16,14 @@ const config: ForgeConfig = {
       else if (file.startsWith('/build')) return false
       else return true
     },
+    name: pkg.name,
+    appBundleId: 'in.rinne.bsnapshot',
+    appCategoryType: 'public.app-category.productivity',
+    icon: 'assets/icon',
   },
   makers: [
-    new MakerSquirrel(
-      {
-        name: 'bsnapshot installer',
-        authors: 'Electron contributors',
-      },
-      ['win32'],
-    ),
-    new MakerZIP({}, ['darwin']),
+    new MakerSquirrel({}, ['win32']),
+    new MakerZIP({}, ['darwin', 'linux']),
     new MakerDeb({}, ['linux']),
   ],
   plugins: [new AutoUnpackNativesPlugin({})],
