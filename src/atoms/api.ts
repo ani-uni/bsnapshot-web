@@ -413,3 +413,102 @@ export const saveTmdbConfigAtom = atom(
     }
   },
 )
+
+/**
+ * 版本更新检查数据类型
+ */
+export interface GitHubAsset {
+  name: string
+  size: number
+  content_type: string
+  browser_download_url: string
+}
+
+export interface ReleaseInfo {
+  tag: string
+  name: string
+  description: string
+  assets: GitHubAsset[]
+}
+
+export type UpdateInfo =
+  | {
+      isLatest: true
+      repo: string
+      platform: string
+      ver: string
+    }
+  | {
+      isLatest: false
+      repo: string
+      platform: string
+      ver: string
+      onlyWeb: boolean
+      dl_link?: string
+      release: ReleaseInfo
+    }
+
+/**
+ * 最后一次版本检查的时间戳，持久化到 localStorage
+ */
+export const lastUpdateCheckAtom = atomWithStorage<number>(
+  'lastUpdateCheck',
+  0,
+)
+
+/**
+ * 版本更新信息刷新触发器
+ */
+export const updateCheckRefreshAtom = atom(0)
+
+/**
+ * 获取版本更新信息的 atom（基础异步 atom）
+ */
+const updateInfoBaseAtom = atom(async (get) => {
+  get(updateCheckRefreshAtom)
+  const url = get(apiBaseUrlAtom)
+
+  try {
+    const response = await fetch(`${url}/api/update`, {
+      method: 'GET',
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    return (await response.json()) as UpdateInfo
+  } catch {
+    return null
+  }
+})
+
+/**
+ * 版本更新信息 atom（使用 unwrap 处理异步）
+ */
+export const updateInfoAtom = unwrap(updateInfoBaseAtom, (prev) => prev ?? null)
+
+/**
+ * 版本检查 Modal 打开状态
+ */
+export const updateCheckModalOpenAtom = atom(false)
+
+/**
+ * 检查版本更新的 action atom
+ */
+export const checkUpdateAtom = atom(
+  null,
+  async (get, set) => {
+    try {
+      set(updateCheckRefreshAtom, get(updateCheckRefreshAtom) + 1)
+      // 更新最后检查时间
+      set(lastUpdateCheckAtom, Date.now())
+      // 打开 modal
+      set(updateCheckModalOpenAtom, true)
+      return true
+    } catch (error) {
+      console.error('Failed to check update:', error)
+      return false
+    }
+  },
+)

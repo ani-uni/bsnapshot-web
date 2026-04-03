@@ -14,6 +14,8 @@ const config: ForgeConfig = {
       else if (file === '/LICENSE') return false
       else if (file.startsWith('/electron')) return false
       else if (file.startsWith('/build')) return false
+      else if (file === '/backend' || file === '/backend/package.json')
+        return false
       else return true
     },
     name: pkg.name,

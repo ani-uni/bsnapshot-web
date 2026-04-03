@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, net, protocol } from 'electron'
 import started from 'electron-squirrel-startup'
 import pkg from '../backend/package.json' with { type: 'json' }
+import { homepage as web_v0 } from '../package.json' with { type: 'json' }
 
 if (started) app.quit()
 
@@ -12,8 +13,8 @@ let serverProcess: ReturnType<typeof fork> | null = null
 
 function getResourcePath() {
   const root = app.isPackaged
-    ? path.join(app.getAppPath(), 'resources')
-    : app.getAppPath()
+    ? app.getAppPath()
+    : path.join(app.getAppPath(), '../')
   return root
 }
 
@@ -62,7 +63,7 @@ const startServer = async () => {
   // process.env.NITRO_HOST = 'localhost'
   // await import('../backend/.output/server/index.mjs')
   serverProcess = fork(
-    path.resolve(getResourcePath(), '../backend/.output/server/index.mjs'),
+    path.resolve(getResourcePath(), './build/server/index.mjs'),
     {
       env: {
         ...process.env,
@@ -81,18 +82,13 @@ const startServer = async () => {
     red: '\x1b[31m',
     gray: '\x1b[90m',
   }
-  console.log(dbPath, app.getPath('userData'))
   serverProcess.stdout?.on('data', (data) => {
-    console.info(
-      `${COLOR.cyan}[子进程 stdout] begin${COLOR.reset}`,
-    )
+    console.info(`${COLOR.cyan}[子进程 stdout] begin${COLOR.reset}`)
     console.info(`${COLOR.gray}${data.toString()}${COLOR.reset}`)
     console.info(`${COLOR.cyan}[子进程 stdout] end${COLOR.reset}`)
   })
   serverProcess.stderr?.on('data', (data) => {
-    console.error(
-      `${COLOR.red}[子进程 stderr] begin${COLOR.reset}`,
-    )
+    console.error(`${COLOR.red}[子进程 stderr] begin${COLOR.reset}`)
     console.error(`${COLOR.red}${data.toString()}${COLOR.reset}`)
     console.error(`${COLOR.red}[子进程 stderr] end${COLOR.reset}`)
   })
@@ -135,21 +131,25 @@ app
     await startServer()
     protocol.handle('app', (req) => {
       const { host, pathname } = new URL(req.url)
+      const pathToServe = pathname.startsWith('/assets')
+        ? pathname
+        : '/index.html'
+      if (pathToServe.includes('..')) {
+        return new Response('bad', {
+          status: 400,
+          headers: { 'content-type': 'text/html' },
+        })
+      }
       if (host === 'bundle') {
-        const pathToServe = pathname.startsWith('/assets')
-          ? pathname
-          : '/index.html'
-        if (pathToServe.includes('..')) {
-          return new Response('bad', {
-            status: 400,
-            headers: { 'content-type': 'text/html' },
-          })
-        }
         return net.fetch(
           pathToFileURL(
-            path.resolve(getResourcePath(), '../build/client') + pathToServe,
+            path.resolve(getResourcePath(), './build/client') + pathToServe,
           ).toString(),
         )
+      } else if (host === 'v0') {
+        const url = new URL(web_v0)
+        url.pathname = pathToServe
+        return net.fetch(url.toString())
       } else
         return new Response('not found', {
           status: 404,

@@ -1,10 +1,23 @@
-import { Card, Spinner, Surface } from '@heroui/react'
+import { Button, Card, Spinner, Surface, Tooltip } from '@heroui/react'
 import { useAtom } from 'jotai'
-import { CheckCircle, TriangleAlert } from 'lucide-react'
-import { serverInfoAtom } from '@/atoms/api'
+import { CheckCircle, RefreshCw, TriangleAlert } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { checkUpdateAtom, serverInfoAtom, updateInfoAtom } from '@/atoms/api'
 
 export function ServerInfo() {
   const [serverInfo] = useAtom(serverInfoAtom)
+  const [updateInfo] = useAtom(updateInfoAtom)
+  const [, checkUpdate] = useAtom(checkUpdateAtom)
+  const [isChecking, setIsChecking] = useState(false)
+
+  const handleCheckUpdate = useCallback(async () => {
+    setIsChecking(true)
+    try {
+      await checkUpdate()
+    } finally {
+      setIsChecking(false)
+    }
+  }, [checkUpdate])
 
   if (serverInfo)
     return (
@@ -49,6 +62,34 @@ export function ServerInfo() {
                     <span className="rounded-md border border-default-300 bg-default-100 px-2 py-1 tracking-wide">
                       {import.meta.env.VITE_IS_PACKED ? 'electron' : 'server'}
                     </span>
+                  </div>
+                  {/* 版本状态和检查按钮 */}
+                  <div className="flex items-center gap-1 mt-2 w-full">
+                    {updateInfo?.isLatest ? (
+                      <span className="text-xs text-success bg-success/10 border border-success/30 rounded px-2 py-1">
+                        已是最新
+                      </span>
+                    ) : updateInfo && !updateInfo.isLatest ? (
+                      <span className="text-xs text-warning bg-warning/10 border border-warning/30 rounded px-2 py-1">
+                        有可用更新
+                      </span>
+                    ) : null}
+                    <Tooltip delay={0}>
+                      <Button
+                        isIconOnly
+                        variant="tertiary"
+                        className="ml-auto"
+                        onClick={handleCheckUpdate}
+                        isDisabled={isChecking}
+                      >
+                        <RefreshCw
+                          className={`size-4 ${isChecking ? 'animate-spin' : ''}`}
+                        />
+                      </Button>
+                      <Tooltip.Content>
+                        <p>检查更新</p>
+                      </Tooltip.Content>
+                    </Tooltip>
                   </div>
                 </div>
               </Surface>
