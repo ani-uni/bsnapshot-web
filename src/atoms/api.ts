@@ -454,57 +454,50 @@ export type UpdateInfo =
 export const lastUpdateCheckAtom = atomWithStorage<number>(
   'lastUpdateCheck',
   0,
+  undefined,
+  { getOnInit: true },
 )
 
 /**
- * 版本更新信息刷新触发器
+ * 版本更新信息 atom
  */
-export const updateCheckRefreshAtom = atom(0)
-
-/**
- * 获取版本更新信息的 atom（基础异步 atom）
- */
-const updateInfoBaseAtom = atom(async (get) => {
-  get(updateCheckRefreshAtom)
-  const url = get(apiBaseUrlAtom)
-
-  try {
-    const response = await fetch(`${url}/api/update`, {
-      method: 'GET',
-    })
-
-    if (!response.ok) {
-      return null
-    }
-
-    return (await response.json()) as UpdateInfo
-  } catch {
-    return null
-  }
-})
-
-/**
- * 版本更新信息 atom（使用 unwrap 处理异步）
- */
-export const updateInfoAtom = unwrap(updateInfoBaseAtom, (prev) => prev ?? null)
+const updateInfoBaseAtom = atom<UpdateInfo | null>(null)
+export const updateInfoAtom = atom((get) => get(updateInfoBaseAtom))
 
 /**
  * 版本检查 Modal 打开状态
  */
 export const updateCheckModalOpenAtom = atom(false)
 
+type UpdateCheckTrigger = 'auto' | 'manual'
+
 /**
  * 检查版本更新的 action atom
  */
 export const checkUpdateAtom = atom(
   null,
-  async (get, set) => {
+  async (get, set, trigger: UpdateCheckTrigger = 'manual') => {
     try {
-      set(updateCheckRefreshAtom, get(updateCheckRefreshAtom) + 1)
+      const url = get(apiBaseUrlAtom)
+      const response = await fetch(`${url}/api/update`, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        set(updateInfoBaseAtom, null)
+        return false
+      }
+
+      const updateInfo = (await response.json()) as UpdateInfo
+      set(updateInfoBaseAtom, updateInfo)
+
       // 更新最后检查时间
       set(lastUpdateCheckAtom, Date.now())
-      // 打开 modal
-      set(updateCheckModalOpenAtom, true)
+
+      // 自动检查：仅在有更新时弹窗；手动检查：总是弹窗。
+      const shouldOpenModal = trigger === 'manual' || !updateInfo.isLatest
+      set(updateCheckModalOpenAtom, shouldOpenModal)
+
       return true
     } catch (error) {
       console.error('Failed to check update:', error)

@@ -1,13 +1,12 @@
 import {
   Button,
   Card,
+  ExternalLinkIcon,
   Link,
   Modal,
   ScrollShadow,
-  Separator,
 } from '@heroui/react'
 import { useAtom } from 'jotai'
-import { ExternalLink } from 'lucide-react'
 import { updateCheckModalOpenAtom, updateInfoAtom } from '@/atoms/api'
 
 export function UpdateCheckModal() {
@@ -31,8 +30,6 @@ export function UpdateCheckModal() {
                   : `发现新版本: ${updateInfo.release.name}`}
               </Modal.Heading>
             </Modal.Header>
-
-            <Separator />
 
             <Modal.Body className="gap-4">
               {updateInfo.isLatest ? (
@@ -70,8 +67,6 @@ export function UpdateCheckModal() {
               )}
             </Modal.Body>
 
-            <Separator />
-
             <Modal.Footer>
               {!updateInfo.isLatest && (
                 <>
@@ -101,9 +96,8 @@ export function UpdateCheckModal() {
                     rel="noopener noreferrer"
                     className="text-sm font-medium"
                   >
-                    <ExternalLink className="size-4" />
                     查看 GitHub 发布页
-                    <Link.Icon className="size-3" />
+                    <ExternalLinkIcon />
                   </Link>
                 </>
               )}

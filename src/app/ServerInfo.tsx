@@ -13,7 +13,7 @@ export function ServerInfo() {
   const handleCheckUpdate = useCallback(async () => {
     setIsChecking(true)
     try {
-      await checkUpdate()
+      await checkUpdate('manual')
     } finally {
       setIsChecking(false)
     }

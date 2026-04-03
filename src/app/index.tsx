@@ -16,7 +16,7 @@ export default function HomePage() {
     const now = Date.now()
     // 如果距离上次检查超过 1 天或从未检查过，则自动检查
     if (now - lastCheck > ONE_DAY_MS) {
-      checkUpdate().catch((error) => {
+      checkUpdate('auto').catch((error) => {
         console.error('Auto check update failed:', error)
       })
     }
