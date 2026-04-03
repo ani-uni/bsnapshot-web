@@ -23,6 +23,7 @@ export default [
     route('/users', './app/users/index.tsx'),
     route('/settings', './app/settings/index.tsx'),
     route('/logs', './app/events/index.tsx'),
+    route('/about', './app/about/index.tsx'),
   ]),
   // * matches all URLs, the ? makes it optional so it will match / as well
   route('*?', 'catchall.tsx'),

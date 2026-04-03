@@ -13,6 +13,7 @@ const navItems = [
   { href: '/users', label: '用户' },
   { href: '/settings', label: '设置' },
   { href: '/logs', label: '日志' },
+  { href: '/about', label: '关于' },
 ]
 
 export function Navbar() {
@@ -24,9 +25,9 @@ export function Navbar() {
   const navigate = useNavigate()
 
   const filteredNavItems = navItems.filter((item) => {
-    // 未连接时，只显示首页和设置
+    // 未连接时，只显示首页、关于和设置
     if (!isServerConnected) {
-      return item.href === '/' || item.href === '/settings'
+      return item.href === '/' || item.href === '/settings' || item.href === '/about'
     }
     if (!serverInfo?.userExist) {
       return !(item.href === '/tasks')
