@@ -221,18 +221,14 @@ export default function AboutPage() {
 
             {/* 前端依赖面板 */}
             <Tabs.Panel id="frontend" className="space-y-4 pt-4">
-              <h3 className="text-lg font-semibold">
-                前端依赖 - {frontendPackageJson.name}
-              </h3>
+              <h3 className="text-lg font-semibold">前端依赖</h3>
               <DependencyTable dependencies={frontendDeps} />
               <DependencyStats dependencies={frontendDeps} />
             </Tabs.Panel>
 
             {/* 后端依赖面板 */}
             <Tabs.Panel id="backend" className="space-y-4 pt-4">
-              <h3 className="text-lg font-semibold">
-                后端依赖 - {backendPackageJson.name}
-              </h3>
+              <h3 className="text-lg font-semibold">后端依赖</h3>
               <DependencyTable dependencies={backendDeps} />
               <DependencyStats dependencies={backendDeps} />
             </Tabs.Panel>
