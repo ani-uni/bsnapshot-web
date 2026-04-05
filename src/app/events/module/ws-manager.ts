@@ -126,14 +126,14 @@ function connect(url: string) {
   const ws = new WebSocket(url)
   socket = ws
 
-  ws.onopen = () => {
+  ws.addEventListener('open', () => {
     if (socket !== ws) return
     notifyOpen()
     void sendEventWsCmd({ cmd: 'list' })
     void setEventWsAutoRefresh(true)
-  }
+  })
 
-  ws.onmessage = (event) => {
+  ws.addEventListener('message', (event) => {
     if (socket !== ws) return
 
     let data: unknown = event.data
@@ -166,14 +166,14 @@ function connect(url: string) {
     if (Array.isArray(data)) {
       notifyEvents(data as LogEvent[])
     }
-  }
+  })
 
-  ws.onerror = () => {
+  ws.addEventListener('error', () => {
     if (socket !== ws) return
     notifyError('日志连接失败')
-  }
+  })
 
-  ws.onclose = () => {
+  ws.addEventListener('close', () => {
     if (socket !== ws) return
     socket = null
     autoRefreshEnabled = false
@@ -184,10 +184,13 @@ function connect(url: string) {
     if (listeners.size > 0 && socketUrl) {
       connect(socketUrl)
     }
-  }
+  })
 }
 
-export function acquireEventWs(url: string, listener: EventWsListener): () => void {
+export function acquireEventWs(
+  url: string,
+  listener: EventWsListener,
+): () => void {
   listenerSeq += 1
   const entry: ListenerEntry = {
     id: listenerSeq,

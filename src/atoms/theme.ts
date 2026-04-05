@@ -55,23 +55,23 @@ export const resolvedThemeAtom = atom((get) => {
  */
 export const isDarkAtom = atom((get) => get(resolvedThemeAtom) === 'dark')
 
+const applyThemeToDom = (dark: boolean) => {
+  const html = document.documentElement
+  if (dark) {
+    html.classList.add('dark')
+    html.setAttribute('data-theme', 'dark')
+  } else {
+    html.classList.remove('dark')
+    html.setAttribute('data-theme', 'light')
+  }
+}
+
 /**
  * 应用主题到 DOM 的 atom effect
  * 监听系统主题变化，如果设置为 system，则跟随系统
  */
 export const applyThemeAtom = atom(null, (get, set) => {
   if (typeof window === 'undefined') return
-
-  const applyThemeToDom = (dark: boolean) => {
-    const html = document.documentElement
-    if (dark) {
-      html.classList.add('dark')
-      html.setAttribute('data-theme', 'dark')
-    } else {
-      html.classList.remove('dark')
-      html.setAttribute('data-theme', 'light')
-    }
-  }
 
   // 监听系统主题变化
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')

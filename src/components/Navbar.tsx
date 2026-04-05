@@ -27,7 +27,9 @@ export function Navbar() {
   const filteredNavItems = navItems.filter((item) => {
     // 未连接时，只显示首页、关于和设置
     if (!isServerConnected) {
-      return item.href === '/' || item.href === '/settings' || item.href === '/about'
+      return (
+        item.href === '/' || item.href === '/settings' || item.href === '/about'
+      )
     }
     if (!serverInfo?.userExist) {
       return !(item.href === '/tasks')

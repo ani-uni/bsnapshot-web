@@ -1,10 +1,9 @@
 {
   "name": "bsnapshot",
-  "description": "Yet another bili full-danmaku fetcher.",
-  "private": true,
   "version": "0.0.1",
-  "type": "module",
-  "main": "./electron/main.ts",
+  "private": true,
+  "description": "Yet another bili full-danmaku fetcher.",
+  "homepage": "https://v0.bsnapshot-web.rinne.in/",
   "files": [
     "package.json",
     "LICENSE",
@@ -12,20 +11,21 @@
     "build/**/*",
     "backend/.output/server/**/*"
   ],
-  "homepage": "https://v0.bsnapshot-web.rinne.in/",
+  "type": "module",
+  "main": "./electron/main.ts",
   "scripts": {
-    "build:frontend": "react-router build",
-    "dev:frontend": "react-router dev",
-    "preview:frontend": "vite preview",
-    "typecheck:frontend": "react-router typegen && tsc",
+    "build": "cross-env VITE_IS_PACKED=true pnpm build:frontend && pnpm build:backend && pnpm package:electron",
     "build:backend": "pnpm -C ./backend build && cp -r ./backend/.output/server/ ./build",
-    "dev:electron": "pnpm electron ./electron/main.ts",
-    "start:electron": "electron-forge start",
-    "package:electron": "electron-forge package",
-    "make:electron": "electron-forge make",
-    "publish:electron": "electron-forge publish",
+    "build:frontend": "react-router build",
     "dev": "cross-env VITE_IS_PACKED=true pnpm build:frontend && pnpm build:backend && pnpm dev:electron",
-    "build": "cross-env VITE_IS_PACKED=true pnpm build:frontend && pnpm build:backend && pnpm package:electron"
+    "dev:electron": "pnpm electron ./electron/main.ts",
+    "dev:frontend": "react-router dev",
+    "make:electron": "electron-forge make",
+    "package:electron": "electron-forge package",
+    "preview:frontend": "vite preview",
+    "publish:electron": "electron-forge publish",
+    "start:electron": "electron-forge start",
+    "typecheck:frontend": "react-router typegen && tsc"
   },
   "dependencies": {
     "@heroui/react": "^3.0.1",
@@ -58,6 +58,8 @@
     "@types/react-dom": "^19.2.3",
     "cross-env": "^10.1.0",
     "electron": "^41.1.1",
+    "oxfmt": "^0.43.0",
+    "oxlint": "^1.58.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
     "vite": "^8.0.3"

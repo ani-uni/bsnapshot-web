@@ -103,7 +103,7 @@ export default function UsersPage() {
       ws = new WebSocket(wsUrl.toString())
       qrSocketRef.current = ws
 
-      ws.onmessage = (event) => {
+      ws.addEventListener('message', (event) => {
         let data: unknown = event.data
         try {
           if (typeof event.data === 'string') {
@@ -144,18 +144,18 @@ export default function UsersPage() {
           refresh((prev) => prev + 1)
           setIsQrModalOpen(false)
         }
-      }
+      })
 
-      ws.onerror = () => {
+      ws.addEventListener('error', () => {
         setQrErr('二维码登录连接失败')
         setIsQrConnecting(false)
-      }
+      })
 
-      ws.onclose = () => {
+      ws.addEventListener('close', () => {
         if (isQrModalOpen && !qrErr) {
           setIsQrConnecting(false)
         }
-      }
+      })
     } catch (error) {
       setQrErr(error instanceof Error ? error.message : '二维码登录连接失败')
       setIsQrConnecting(false)

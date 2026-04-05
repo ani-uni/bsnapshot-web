@@ -38,6 +38,26 @@ import {
   danmakuExportFileNameTemplateAtom,
 } from '@/atoms/groups/export'
 
+const validateDanmakuExportTemplate = (values: {
+  defaultFileNameTemplate: string
+  batchExportTemplate: string
+}) => {
+  const errors: {
+    defaultFileNameTemplate?: string
+    batchExportTemplate?: string
+  } = {}
+
+  if (!values.defaultFileNameTemplate.trim().endsWith('{fmt}')) {
+    errors.defaultFileNameTemplate = '模板必须以 {fmt} 结尾'
+  }
+
+  if (!values.batchExportTemplate.trim().endsWith('{fmt}')) {
+    errors.batchExportTemplate = '模板必须以 {fmt} 结尾'
+  }
+
+  return errors
+}
+
 export default function SettingsPage() {
   const [apiBaseUrl, setApiBaseUrl] = useAtom(apiBaseUrlAtom)
   const [tempUrl, setTempUrl] = useAtom(tempUrlAtom)
@@ -167,26 +187,6 @@ export default function SettingsPage() {
     setDefaultTemplate(danmakuExportFileNameTemplate)
     setBatchTemplate(danmakuBatchExportTemplate)
   }, [danmakuExportFileNameTemplate, danmakuBatchExportTemplate])
-
-  const validateDanmakuExportTemplate = (values: {
-    defaultFileNameTemplate: string
-    batchExportTemplate: string
-  }) => {
-    const errors: {
-      defaultFileNameTemplate?: string
-      batchExportTemplate?: string
-    } = {}
-
-    if (!values.defaultFileNameTemplate.trim().endsWith('{fmt}')) {
-      errors.defaultFileNameTemplate = '模板必须以 {fmt} 结尾'
-    }
-
-    if (!values.batchExportTemplate.trim().endsWith('{fmt}')) {
-      errors.batchExportTemplate = '模板必须以 {fmt} 结尾'
-    }
-
-    return errors
-  }
 
   const handleSaveDanmakuExportSettings = () => {
     const nextValues = {

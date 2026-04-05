@@ -649,7 +649,9 @@ export default function AddCapture({
                                   )
                                   if (value && value !== '') {
                                     const section = episodeTree.find((s) =>
-                                      s.episodes.some((ep) => ep.id === String(value)),
+                                      s.episodes.some(
+                                        (ep) => ep.id === String(value),
+                                      ),
                                     )
                                     setEpisodeSearch(
                                       section?.season?.title || '',

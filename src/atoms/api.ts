@@ -221,7 +221,7 @@ export const configPatchAtom = atom<Partial<Omit<Config, 'id'>>>({})
 export const configFormAtom = atom((get) => {
   const config = get(configAtom)
   if (!config) return null
-  const { id, ...rest } = config
+  const { id: _id, ...rest } = config
   const patch = get(configPatchAtom)
   return { ...rest, ...patch }
 })
@@ -263,9 +263,9 @@ export const saveConfigAtom = atom(
       if (!baseConfig) {
         throw new Error('Config not loaded')
       }
-      const { id, ...rest } = baseConfig
+      const { id: _id, ...rest } = baseConfig
       const patch = get(configPatchAtom)
-      const payload = { ...rest, ...patch, ...(formData ?? {}) }
+      const payload = { ...rest, ...patch, ...formData }
       const url = get(apiBaseUrlAtom)
       const response = await fetch(`${url}/api/config`, {
         method: 'PATCH',
@@ -374,7 +374,7 @@ export const saveTmdbConfigAtom = atom(
         throw new Error('TMDB config not loaded')
       }
       const patch = get(tmdbPatchAtom)
-      const rawPayload = { ...baseConfig, ...patch, ...(formData ?? {}) }
+      const rawPayload = { ...baseConfig, ...patch, ...formData }
       const payload = {
         api_url: rawPayload.api_url === '' ? null : rawPayload.api_url,
         api_key: rawPayload.api_key === '' ? null : rawPayload.api_key,

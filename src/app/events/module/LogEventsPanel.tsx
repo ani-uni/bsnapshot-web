@@ -102,7 +102,7 @@ export default function LogEventsPanel({
         if (typeof item?.id !== 'number') continue
         map.set(item.id, item)
       }
-      return Array.from(map.values()).sort((a, b) => b.id - a.id)
+      return Array.from(map.values()).toSorted((a, b) => b.id - a.id)
     })
 
     setIsMergingIncoming(false)
@@ -499,7 +499,9 @@ export default function LogEventsPanel({
                         )}
                       </Table.Cell>
                       <Table.Cell>
-                        <p className={`whitespace-pre-wrap wrap-break-word text-sm leading-5 ${styles.text}`}>
+                        <p
+                          className={`whitespace-pre-wrap wrap-break-word text-sm leading-5 ${styles.text}`}
+                        >
                           {event.msg}
                         </p>
                       </Table.Cell>

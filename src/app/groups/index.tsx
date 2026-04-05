@@ -472,9 +472,12 @@ export default function GroupsIndexPage() {
   const handleCreateDefaultEpisode = async () => {
     setIsCreatingDefaultEpisode(true)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/seasons/default/episodes`, {
-        method: 'POST',
-      })
+      const response = await fetch(
+        `${apiBaseUrl}/api/seasons/default/episodes`,
+        {
+          method: 'POST',
+        },
+      )
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }

@@ -15,7 +15,9 @@ export const LOG_STRING_FILTER_FIELD = {
   label: '日志内容',
 }
 
-export function normalizeLevelFilter(value: Key | null | undefined): LogLevelFilter {
+export function normalizeLevelFilter(
+  value: Key | null | undefined,
+): LogLevelFilter {
   if (value === 'INFO' || value === 'WARNING' || value === 'ERROR') {
     return value
   }

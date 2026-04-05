@@ -31,9 +31,7 @@ export function CaptureList({
               <Accordion.Item key={capture.cid} id={capture.cid}>
                 <Accordion.Heading>
                   <Accordion.Trigger
-                    onPress={() =>
-                      navigate(`/tasks/captures/${capture.cid}`)
-                    }
+                    onPress={() => navigate(`/tasks/captures/${capture.cid}`)}
                   >
                     <span className="font-mono">{capture.cid}</span>
                     <Accordion.Indicator>

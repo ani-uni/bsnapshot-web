@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "@heroui/styles";
+@import 'tailwindcss';
+@import '@heroui/styles';
 
 @layer utilities {
   /* Ensure proper theme color transitions */
