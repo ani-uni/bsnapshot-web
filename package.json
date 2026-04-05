@@ -4,6 +4,10 @@
   "private": true,
   "description": "Yet another bili full-danmaku fetcher.",
   "homepage": "https://v0.bsnapshot-web.rinne.in/",
+  "author": {
+    "name": "ani-uni",
+    "url": "https://github.com/ani-uni"
+  },
   "files": [
     "package.json",
     "LICENSE",
