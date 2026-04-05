@@ -1,4 +1,5 @@
 import { Duration } from 'luxon'
+
 import type { SeasonEpisodeItem } from './types'
 
 export function secondsToHms(totalSeconds: number): string {

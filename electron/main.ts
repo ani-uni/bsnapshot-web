@@ -1,8 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+
 import { app, BrowserWindow, net, protocol, utilityProcess } from 'electron'
 import started from 'electron-squirrel-startup'
+
 import pkg from '../backend/package.json' with { type: 'json' }
 import fpkg from '../package.json' with { type: 'json' }
 

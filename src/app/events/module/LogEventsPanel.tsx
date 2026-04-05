@@ -17,8 +17,10 @@ import {
 import { useAtom, useAtomValue } from 'jotai'
 import { RefreshCcw, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { type LogEvent, logEventsAtom } from '@/atoms/events'
+
 import {
   getLogStyles,
   LOG_LEVEL_OPTIONS,

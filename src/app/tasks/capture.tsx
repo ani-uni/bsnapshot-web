@@ -14,6 +14,7 @@ import { Trash2 } from 'lucide-react'
 import { Duration } from 'luxon'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
+
 import LogEventsPanel from '@/app/events/module/LogEventsPanel'
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { RequireConnection } from '@/components/RequireConnection'

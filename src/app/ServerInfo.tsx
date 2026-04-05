@@ -2,6 +2,7 @@ import { Button, Card, Spinner, Surface, Tooltip } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { CheckCircle, RefreshCw, TriangleAlert } from 'lucide-react'
 import { useCallback, useState } from 'react'
+
 import { checkUpdateAtom, serverInfoAtom, updateInfoAtom } from '@/atoms/api'
 
 export function ServerInfo() {

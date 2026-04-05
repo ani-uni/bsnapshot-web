@@ -16,5 +16,6 @@
   "sortPackageJson": {
     "sortScripts": true,
   },
+  "sortImports": true,
   "ignorePatterns": ["*.md", "backend/**"],
 }

@@ -1,4 +1,5 @@
 import { Card, ExternalLinkIcon, Link, Table, Tabs } from '@heroui/react'
+
 import backendPackageJson from '~/backend/package.json'
 import frontendPackageJson from '~/package.json'
 

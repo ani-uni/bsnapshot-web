@@ -1,5 +1,6 @@
 import { atom } from 'jotai'
 import { unwrap } from 'jotai/utils'
+
 import { apiBaseUrlAtom, serverInfoBaseRefreshAtom } from './api'
 
 /**

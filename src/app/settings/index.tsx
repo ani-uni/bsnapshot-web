@@ -14,6 +14,7 @@ import { useAtom, useAtomValue } from 'jotai'
 import { RESET } from 'jotai/utils'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+
 import {
   apiBaseUrlAtom,
   apiConnectionStatusAtom,

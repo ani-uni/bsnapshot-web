@@ -1,6 +1,7 @@
 import { Accordion, Card, Separator, Spinner } from '@heroui/react'
 import { ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router'
+
 import type { CaptureItem } from './types'
 
 export function CaptureList({

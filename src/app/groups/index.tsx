@@ -13,6 +13,7 @@ import { useAtom, useAtomValue } from 'jotai'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
 import { TMDB_IMAGE_PREFIX } from '@/constants/tmdb'

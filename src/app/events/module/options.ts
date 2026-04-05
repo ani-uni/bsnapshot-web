@@ -1,4 +1,5 @@
 import type { Key } from '@heroui/react'
+
 import type { LogEvent } from '@/atoms/events'
 
 export type LogLevelFilter = 'all' | 'INFO' | 'WARNING' | 'ERROR'

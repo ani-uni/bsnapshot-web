@@ -1,4 +1,5 @@
 import { RequireConnection } from '@/components/RequireConnection'
+
 import LogEventsPanel from './module/LogEventsPanel'
 
 export default function LogsPage() {

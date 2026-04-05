@@ -16,6 +16,7 @@ import { useAtom, useAtomValue } from 'jotai'
 import { ChevronRight, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
+
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
 import EditableText from '@/components/EditableText'

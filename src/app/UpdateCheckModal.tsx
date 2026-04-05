@@ -7,6 +7,7 @@ import {
   ScrollShadow,
 } from '@heroui/react'
 import { useAtom } from 'jotai'
+
 import { updateCheckModalOpenAtom, updateInfoAtom } from '@/atoms/api'
 
 export function UpdateCheckModal() {

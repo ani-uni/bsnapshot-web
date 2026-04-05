@@ -16,6 +16,7 @@ import { useAtom, useAtomValue } from 'jotai'
 import { ChevronDown, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
+
 import { renderFilenameTemplate } from '@/app/groups/filename'
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'

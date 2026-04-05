@@ -1,8 +1,10 @@
 import { Spinner, toast } from '@heroui/react'
 import { useAtomValue } from 'jotai'
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { RequireConnection } from '@/components/RequireConnection'
+
 import { CaptureList } from './CaptureList'
 import type { CaptureItem } from './types'
 

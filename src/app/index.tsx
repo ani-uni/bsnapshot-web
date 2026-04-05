@@ -1,7 +1,9 @@
 import { useAtom } from 'jotai'
 import { useEffect } from 'react'
+
 import { checkUpdateAtom, lastUpdateCheckAtom } from '@/atoms/api'
 import { RequireConnection } from '@/components/RequireConnection'
+
 // import { QueueDisplay } from './QueueDisplay'
 import { ServerInfo } from './ServerInfo'
 import { UpdateCheckModal } from './UpdateCheckModal'

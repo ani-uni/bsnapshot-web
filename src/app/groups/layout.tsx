@@ -1,6 +1,7 @@
 import { Breadcrumbs } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { NavLink, Outlet } from 'react-router'
+
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
 import { RequireConnection } from '@/components/RequireConnection'
 
