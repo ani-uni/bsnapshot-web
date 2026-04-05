@@ -1,15 +1,14 @@
-import { fork } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { app, BrowserWindow, net, protocol } from 'electron'
+import { app, BrowserWindow, net, protocol, utilityProcess } from 'electron'
 import started from 'electron-squirrel-startup'
 import pkg from '../backend/package.json' with { type: 'json' }
-import { homepage as web_v0 } from '../package.json' with { type: 'json' }
+import fpkg from '../package.json' with { type: 'json' }
 
 if (started) app.quit()
 
-let serverProcess: ReturnType<typeof fork> | null = null
+let serverProcess: ReturnType<typeof utilityProcess.fork> | null = null
 
 function getResourcePath() {
   const root = app.isPackaged
@@ -59,11 +58,9 @@ const startServer = async () => {
       mg.s = dbMigrationLock
     }
   }
-  // process.env.NITRO_PORT = '45600'
-  // process.env.NITRO_HOST = 'localhost'
-  // await import('../backend/.output/server/index.mjs')
-  serverProcess = fork(
+  serverProcess = utilityProcess.fork(
     path.resolve(getResourcePath(), './build/server/index.mjs'),
+    undefined,
     {
       env: {
         ...process.env,
@@ -73,7 +70,7 @@ const startServer = async () => {
         DATABASE_URL: `file:${dbPath}`, // 可选，会基于下方USER_DATA_PATH自动生成
         USER_DATA_PATH: app.getPath('userData'),
       },
-      stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
+      stdio: 'pipe',
     },
   )
   const COLOR = {
@@ -147,7 +144,7 @@ app
           ).toString(),
         )
       } else if (host === 'v0') {
-        const url = new URL(web_v0)
+        const url = new URL(fpkg.homepage)
         url.pathname = pathToServe
         return net.fetch(url.toString())
       } else
@@ -172,7 +169,7 @@ app
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    serverProcess?.kill('SIGKILL') // nitro的问题，通过node执行的启动在优雅退出后仍持续运行，只能 kill -9 了
+    serverProcess?.kill()
     app.quit()
   }
 })
