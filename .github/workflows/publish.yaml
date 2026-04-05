@@ -64,6 +64,8 @@ jobs:
 
       - name: Build
         run: pnpm build
+        env:
+          VITE_TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
       - name: Publish Electron
         run: pnpm publish:electron

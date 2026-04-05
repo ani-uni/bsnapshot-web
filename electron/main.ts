@@ -68,7 +68,6 @@ const startServer = async () => {
         ...process.env,
         NITRO_PORT: '45600',
         NITRO_HOST: 'localhost',
-        // DATABASE_URL: 'file:.data/db/prisma.db',
         DATABASE_URL: `file:${dbPath}`, // 可选，会基于下方USER_DATA_PATH自动生成
         USER_DATA_PATH: app.getPath('userData'),
       },
