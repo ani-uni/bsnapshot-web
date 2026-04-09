@@ -318,8 +318,10 @@ export default function AddCapture({
           body: JSON.stringify({
             clips: page.clips,
             cid: page.cid,
-            pubdate: pregenEdit.pubdate,
-            upMid: pregenEdit.upMid,
+            // 以下项若为 0 0n 或 '' 则不传，避免被后端当作无效值拒绝
+            aid: pregenEdit.aid || undefined,
+            pubdate: pregenEdit.pubdate || undefined,
+            upMid: pregenEdit.upMid || undefined,
           }),
         })
         if (!createRes.ok) {
