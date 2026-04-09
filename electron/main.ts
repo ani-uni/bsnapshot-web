@@ -52,7 +52,7 @@ const startServer = async () => {
     fs.writeFileSync(dbPath, '')
     fs.writeFileSync(dbMigrationLockPath, pkg.version)
     mg.r = true
-    mg.s = 0
+    mg.s = -1
   } else if (fs.existsSync(dbMigrationLockPath)) {
     const dbMigrationLock = fs.readFileSync(dbMigrationLockPath, 'utf-8')
     if (dbMigrationLock < pkg.version) {
