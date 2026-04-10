@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import { apiBaseUrlAtom } from '@/atoms/api'
 import {
   loginStatusAtom,
+  usersAutoRefreshAtom,
   loginWithCookiesAtom,
   usersAtom,
   usersRefreshAtom,
@@ -21,6 +22,7 @@ import { RequireConnection } from '@/components/RequireConnection'
 
 export default function UsersPage() {
   const users = useAtomValue(usersAtom)
+  useAtomValue(usersAutoRefreshAtom)
   const refresh = useSetAtom(usersRefreshAtom)
   const [, loginWithCookies] = useAtom(loginWithCookiesAtom)
   const loginStatus = useAtomValue(loginStatusAtom)
@@ -66,6 +68,11 @@ export default function UsersPage() {
       toast.danger(loginStatus.message || '登录失败')
     }
   }, [loginStatus.status, loginStatus.message])
+
+  // 进入 users 页面时主动触发一次刷新
+  useEffect(() => {
+    refresh((prev) => prev + 1)
+  }, [refresh])
 
   useEffect(() => {
     if (!qrUrl || !qrContainerRef.current) return

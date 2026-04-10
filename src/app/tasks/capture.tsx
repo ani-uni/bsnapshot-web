@@ -17,6 +17,7 @@ import { Link as RLink, useNavigate, useParams } from 'react-router'
 
 import LogEventsPanel from '@/app/events/module/LogEventsPanel'
 import { apiBaseUrlAtom } from '@/atoms/api'
+import { usersAtom, usersAutoRefreshAtom } from '@/atoms/users'
 import { RequireConnection } from '@/components/RequireConnection'
 
 type CaptureDetail = {
@@ -58,11 +59,6 @@ type FetchTask = {
   lastRunAt: string
   queueId: string | null
   createdAt: string
-}
-
-type User = {
-  mid: string
-  name: string
 }
 
 function formatTimestamp(dateString: string | null) {
@@ -150,6 +146,8 @@ function formatSeconds(s: number): string {
 export default function CaptureDetailPage() {
   const { cid } = useParams<{ cid: string }>()
   const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
+  const users = useAtomValue(usersAtom)
+  useAtomValue(usersAutoRefreshAtom)
   const navigate = useNavigate()
 
   const [capture, setCapture] = useState<CaptureDetail | null>(null)
@@ -162,7 +160,6 @@ export default function CaptureDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isLoadingDanmaku, setIsLoadingDanmaku] = useState(false)
   const [fetchTasks, setFetchTasks] = useState<FetchTask[]>([])
-  const [userList, setUserList] = useState<User[]>([])
   const [isFetchTaskToggling, setIsFetchTaskToggling] = useState<
     Record<string, boolean>
   >({})
@@ -174,14 +171,11 @@ export default function CaptureDetailPage() {
     if (!cid) return
     setIsLoading(true)
     try {
-      const [captureRes, clipsRes, fetchTasksRes, usersRes] = await Promise.all(
-        [
-          fetch(`${apiBaseUrl}/api/tasks/captures/${cid}`),
-          fetch(`${apiBaseUrl}/api/tasks/captures/${cid}/clips`),
-          fetch(`${apiBaseUrl}/api/tasks/fetch/${cid}`),
-          fetch(`${apiBaseUrl}/api/auth/users`),
-        ],
-      )
+      const [captureRes, clipsRes, fetchTasksRes] = await Promise.all([
+        fetch(`${apiBaseUrl}/api/tasks/captures/${cid}`),
+        fetch(`${apiBaseUrl}/api/tasks/captures/${cid}/clips`),
+        fetch(`${apiBaseUrl}/api/tasks/fetch/${cid}`),
+      ])
 
       if (!captureRes.ok)
         throw new Error(`采集信息加载失败：HTTP ${captureRes.status}`)
@@ -196,11 +190,6 @@ export default function CaptureDetailPage() {
       if (fetchTasksRes.ok) {
         const fetchTasksData = (await fetchTasksRes.json()) as FetchTask[]
         setFetchTasks(fetchTasksData)
-      }
-
-      if (usersRes.ok) {
-        const usersData = (await usersRes.json()) as User[]
-        setUserList(usersData)
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '未知错误'
@@ -313,19 +302,11 @@ export default function CaptureDetailPage() {
   const fetchFetchTasks = useCallback(async () => {
     if (!cid) return
     try {
-      const [fetchTasksRes, usersRes] = await Promise.all([
-        fetch(`${apiBaseUrl}/api/tasks/fetch/${cid}`),
-        fetch(`${apiBaseUrl}/api/auth/users`),
-      ])
+      const fetchTasksRes = await fetch(`${apiBaseUrl}/api/tasks/fetch/${cid}`)
 
       if (fetchTasksRes.ok) {
         const fetchTasksData = (await fetchTasksRes.json()) as FetchTask[]
         setFetchTasks(fetchTasksData)
-      }
-
-      if (usersRes.ok) {
-        const usersData = (await usersRes.json()) as User[]
-        setUserList(usersData)
       }
     } catch (error) {
       toast.danger(
@@ -638,7 +619,7 @@ export default function CaptureDetailPage() {
                 {fetchTasks.map((task) => {
                   const isDisabled = task.status === 'DISABLED'
                   const isUPTask = task.type === 'UP'
-                  const upUserExists = userList.some(
+                  const upUserExists = (users ?? []).some(
                     (u) => u.mid === capture?.upMid,
                   )
 

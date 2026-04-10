@@ -12,23 +12,80 @@ export interface User {
   vip: boolean
 }
 
+const USERS_CACHE_TTL_MS = 60 * 60 * 1000
+
+let usersCache: User[] | null = null
+let usersCacheUpdatedAt = 0
+let usersCacheApiBaseUrl: string | null = null
+let usersPendingRequest: Promise<User[] | null> | null = null
+let usersLastRefreshToken = 0
+
 /**
  * Users 刷新触发器
  */
 export const usersRefreshAtom = atom(0)
 
 /**
+ * Users 自动刷新触发器（每小时触发一次）
+ */
+export const usersAutoRefreshAtom = atom(0)
+usersAutoRefreshAtom.onMount = (set) => {
+  const intervalId = setInterval(() => {
+    set((prev) => prev + 1)
+  }, USERS_CACHE_TTL_MS)
+
+  return () => {
+    clearInterval(intervalId)
+  }
+}
+
+/**
  * 获取用户列表的 atom（基础异步 atom）
  */
 const usersBaseAtom = atom(async (get) => {
-  get(usersRefreshAtom)
+  const refreshToken = get(usersRefreshAtom)
+  get(usersAutoRefreshAtom)
+
   const url = get(apiBaseUrlAtom)
+  const now = Date.now()
+  const isManualRefresh = refreshToken !== usersLastRefreshToken
+  usersLastRefreshToken = refreshToken
+
+  const isFreshCache =
+    usersCache !== null &&
+    usersCacheApiBaseUrl === url &&
+    now - usersCacheUpdatedAt < USERS_CACHE_TTL_MS
+
+  if (!isManualRefresh && isFreshCache) {
+    return usersCache
+  }
+
+  if (usersPendingRequest) {
+    return usersPendingRequest
+  }
+
+  usersPendingRequest = (async () => {
+    try {
+      const response = await fetch(`${url}/api/auth/users`)
+      if (!response.ok) return usersCache
+
+      const users = (await response.json()) as User[]
+      usersCache = users
+      usersCacheUpdatedAt = Date.now()
+      usersCacheApiBaseUrl = url
+
+      return usersCache
+    } catch {
+      return usersCache
+    } finally {
+      usersPendingRequest = null
+    }
+  })()
+
   try {
-    const response = await fetch(`${url}/api/auth/users`)
-    if (!response.ok) return null
-    return (await response.json()) as User[]
+    return await usersPendingRequest
   } catch {
-    return null
+    return usersCache
   }
 })
 
