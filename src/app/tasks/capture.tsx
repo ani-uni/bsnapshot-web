@@ -413,7 +413,7 @@ export default function CaptureDetailPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       void fetchFetchTasks()
-    }, 10000)
+    }, 30000)
 
     return () => clearInterval(interval)
   }, [fetchFetchTasks])
