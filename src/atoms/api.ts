@@ -1,3 +1,4 @@
+import { toast } from '@heroui/react'
 import { atom } from 'jotai'
 import { atomWithStorage, unwrap } from 'jotai/utils'
 
@@ -301,6 +302,140 @@ export const saveConfigAtom = atom(
 )
 
 /**
+ * Event 配置数据类型
+ */
+export interface EventConfig {
+  autoDelTimeAway: number
+}
+
+const EVENT_SECONDS_PER_DAY = 24 * 60 * 60
+
+/**
+ * Event 配置刷新触发器
+ */
+export const eventRefreshAtom = atom(0)
+
+/**
+ * 获取 Event 配置的 atom（基础异步 atom）
+ */
+const eventBaseAtom = atom(async (get) => {
+  get(eventRefreshAtom)
+  const url = get(apiBaseUrlAtom)
+
+  try {
+    const response = await fetch(`${url}/api/config/event`)
+    if (!response.ok) {
+      return null
+    }
+
+    return (await response.json()) as EventConfig
+  } catch {
+    return null
+  }
+})
+
+/**
+ * Event 配置 atom（使用 unwrap 处理异步）
+ */
+export const eventAtom = unwrap(eventBaseAtom, (prev) => prev ?? null)
+
+/**
+ * Event 修改项 atom（只保存用户修改的字段）
+ */
+export const eventPatchAtom = atom<Partial<EventConfig>>({})
+
+/**
+ * Event 表单 atom（显示用，合并初始值 + 修改项）
+ */
+export const eventFormAtom = atom((get) => {
+  const config = get(eventAtom)
+  if (!config) return null
+  const patch = get(eventPatchAtom)
+  return { ...config, ...patch }
+})
+
+/**
+ * Event 自动清理天数 atom（显示与提交统一状态）
+ */
+export const eventAutoDelTimeAwayDaysAtom = atom(
+  (get) => {
+    const form = get(eventFormAtom)
+    if (!form) return null
+    return Math.round(form.autoDelTimeAway / EVENT_SECONDS_PER_DAY)
+  },
+  (get, set, nextDays: number) => {
+    const normalizedDays = Number.isFinite(nextDays)
+      ? Math.max(0, Math.trunc(nextDays))
+      : 0
+    const patch = get(eventPatchAtom)
+
+    set(eventPatchAtom, {
+      ...patch,
+      autoDelTimeAway: normalizedDays * EVENT_SECONDS_PER_DAY,
+    })
+  },
+)
+
+/**
+ * Event 保存状态 atom
+ */
+export const eventSaveStatusAtom = atom<{
+  status: 'idle' | 'saving' | 'success' | 'error'
+  message?: string
+}>({
+  status: 'idle',
+})
+
+/**
+ * 保存 Event 配置的 atom
+ */
+export const saveEventConfigAtom = atom(
+  null,
+  async (get, set, formData?: Partial<EventConfig>) => {
+    set(eventSaveStatusAtom, { status: 'saving' })
+
+    try {
+      const baseConfig = get(eventAtom)
+      if (!baseConfig) {
+        throw new Error('Event config not loaded')
+      }
+      const patch = get(eventPatchAtom)
+      const payload = { ...baseConfig, ...patch, ...formData }
+      const url = get(apiBaseUrlAtom)
+      const response = await fetch(`${url}/api/config/event`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update Event config')
+      }
+
+      const updatedConfig = (await response.json()) as EventConfig
+
+      set(eventSaveStatusAtom, {
+        status: 'success',
+        message: '保存成功',
+      })
+
+      set(eventPatchAtom, {})
+      set(eventRefreshAtom, get(eventRefreshAtom) + 1)
+
+      return updatedConfig
+    } catch (error) {
+      set(eventSaveStatusAtom, {
+        status: 'error',
+        message: `保存失败: ${error instanceof Error ? error.message : '未知错误'}`,
+      })
+      throw error
+    }
+  },
+)
+
+/**
  * TMDB 配置数据类型
  */
 export interface TMDBConfig {
@@ -500,7 +635,9 @@ export const checkUpdateAtom = atom(
 
       return true
     } catch (error) {
-      console.error('Failed to check update:', error)
+      toast.danger(
+        `检查更新失败：${error instanceof Error ? error.message : '未知错误'}`,
+      )
       return false
     }
   },

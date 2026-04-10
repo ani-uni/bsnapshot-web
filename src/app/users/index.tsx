@@ -50,7 +50,9 @@ export default function UsersPage() {
       setCookiesInput('')
       setIsLoginModalOpen(false)
     } catch (error) {
-      console.error('Login failed:', error)
+      toast.danger(
+        `登录失败：${error instanceof Error ? error.message : '未知错误'}`,
+      )
     } finally {
       setIsLoggingIn(false)
     }

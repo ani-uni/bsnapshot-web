@@ -1,3 +1,4 @@
+import { toast } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { useEffect } from 'react'
 
@@ -19,7 +20,9 @@ export default function HomePage() {
     // 如果距离上次检查超过 1 天或从未检查过，则自动检查
     if (now - lastCheck > ONE_DAY_MS) {
       checkUpdate('auto').catch((error) => {
-        console.error('Auto check update failed:', error)
+        toast.danger(
+          `自动检查更新失败：${error instanceof Error ? error.message : '未知错误'}`,
+        )
       })
     }
   }, [lastCheck, checkUpdate])

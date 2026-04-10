@@ -5,6 +5,7 @@ import {
   Fieldset,
   Input,
   Label,
+  NumberField,
   Separator,
   Table,
   TextField,
@@ -13,11 +14,16 @@ import {
 import { useAtom, useAtomValue } from 'jotai'
 import { RESET } from 'jotai/utils'
 import { Loader2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import {
   apiBaseUrlAtom,
   apiConnectionStatusAtom,
+  eventAutoDelTimeAwayDaysAtom,
+  eventFormAtom,
+  eventPatchAtom,
+  eventSaveStatusAtom,
+  saveEventConfigAtom,
   type Config,
   configFormAtom,
   configPatchAtom,
@@ -59,6 +65,24 @@ const validateDanmakuExportTemplate = (values: {
   return errors
 }
 
+const SECONDS_PER_DAY = 24 * 60 * 60
+
+const validateEventConfigDays = (value: number) => {
+  if (!Number.isFinite(value) || Number.isNaN(value)) {
+    return '请输入有效数字'
+  }
+
+  if (!Number.isInteger(value)) {
+    return '请输入整数天数'
+  }
+
+  if (value < 0) {
+    return '天数不能小于 0'
+  }
+
+  return undefined
+}
+
 export default function SettingsPage() {
   const [apiBaseUrl, setApiBaseUrl] = useAtom(apiBaseUrlAtom)
   const [tempUrl, setTempUrl] = useAtom(tempUrlAtom)
@@ -85,12 +109,26 @@ export default function SettingsPage() {
   const [configPatch, setConfigPatch] = useAtom(configPatchAtom)
   const [, saveConfig] = useAtom(saveConfigAtom)
   const configSaveStatus = useAtomValue(configSaveStatusAtom)
+  const eventForm = useAtomValue(eventFormAtom)
+  const [eventAutoDelTimeAwayDays, setEventAutoDelTimeAwayDays] = useAtom(
+    eventAutoDelTimeAwayDaysAtom,
+  )
+  const [eventPatch, setEventPatch] = useAtom(eventPatchAtom)
+  const [, saveEventConfig] = useAtom(saveEventConfigAtom)
+  const eventSaveStatus = useAtomValue(eventSaveStatusAtom)
   const tmdbForm = useAtomValue(tmdbFormAtom)
   const [tmdbPatch, setTmdbPatch] = useAtom(tmdbPatchAtom)
   const [, saveTmdbConfig] = useAtom(saveTmdbConfigAtom)
   const tmdbSaveStatus = useAtomValue(tmdbSaveStatusAtom)
 
   const [isManualTest, setIsManualTest] = useState(false)
+  const eventDayValidation = useMemo(() => {
+    if (eventAutoDelTimeAwayDays == null) {
+      return '请输入有效数字'
+    }
+
+    return validateEventConfigDays(eventAutoDelTimeAwayDays)
+  }, [eventAutoDelTimeAwayDays])
 
   // 只在用户手动点击测试时显示连接相关的 toast
   useEffect(() => {
@@ -123,6 +161,15 @@ export default function SettingsPage() {
     }
   }, [tmdbSaveStatus.status, tmdbSaveStatus.message])
 
+  // 监听 Event 保存状态并显示 toast
+  useEffect(() => {
+    if (eventSaveStatus.status === 'success') {
+      toast.success('保存成功')
+    } else if (eventSaveStatus.status === 'error') {
+      toast.danger(eventSaveStatus.message || '保存失败')
+    }
+  }, [eventSaveStatus.status, eventSaveStatus.message])
+
   const handleSaveConfig = async () => {
     if (!configForm) return
 
@@ -130,7 +177,9 @@ export default function SettingsPage() {
       await saveConfig()
     } catch (error) {
       // 错误已在 atom 中处理
-      console.error('Failed to save config:', error)
+      toast.danger(
+        `保存失败：${error instanceof Error ? error.message : '未知错误'}`,
+      )
     }
   }
 
@@ -170,7 +219,9 @@ export default function SettingsPage() {
     try {
       await saveTmdbConfig()
     } catch (error) {
-      console.error('Failed to save TMDB config:', error)
+      toast.danger(
+        `保存失败：${error instanceof Error ? error.message : '未知错误'}`,
+      )
     }
   }
 
@@ -219,6 +270,31 @@ export default function SettingsPage() {
       setDanmakuBatchExportTemplate(nextValues.batchExportTemplate)
     }
     toast.success('弹幕导出设置已保存')
+  }
+
+  const handleSaveEventConfig = async () => {
+    if (!eventForm) return
+
+    if (eventDayValidation) {
+      toast.danger(`保存失败：${eventDayValidation}`)
+      return
+    }
+
+    try {
+      await saveEventConfig({ autoDelTimeAway: eventForm.autoDelTimeAway })
+    } catch (saveError) {
+      toast.danger(
+        `保存失败：${saveError instanceof Error ? saveError.message : '未知错误'}`,
+      )
+    }
+  }
+
+  const handleResetEventConfig = () => {
+    if (!eventForm) return
+
+    setEventPatch({ ...eventPatch, autoDelTimeAway: 7 * SECONDS_PER_DAY })
+    setEventAutoDelTimeAwayDays(7)
+    toast.success('已重置事件自动清理时长为默认值')
   }
 
   const handleResetDefaultTemplate = () => {
@@ -601,6 +677,67 @@ export default function SettingsPage() {
                     </>
                   ) : (
                     '保存基础设置'
+                  )}
+                </Button>
+              </Fieldset.Actions>
+            )}
+          </Fieldset>
+
+          <Separator className="my-6" />
+
+          <Fieldset className="mb-6">
+            <Fieldset.Legend>事件/日志设置</Fieldset.Legend>
+            <Description>配置事件自动清理的保留时长</Description>
+            {eventForm ? (
+              <Fieldset.Group className="space-y-4">
+                <NumberField
+                  value={eventAutoDelTimeAwayDays ?? 0}
+                  onChange={(value) => setEventAutoDelTimeAwayDays(value ?? 0)}
+                  validationBehavior="aria"
+                  validate={validateEventConfigDays}
+                  isInvalid={Boolean(eventDayValidation)}
+                  minValue={0}
+                  step={1}
+                >
+                  <Label>自动清理保留时长（天）</Label>
+                  <NumberField.Group>
+                    <NumberField.DecrementButton />
+                    <NumberField.Input />
+                    <NumberField.IncrementButton />
+                  </NumberField.Group>
+                  <FieldError>{eventDayValidation ?? ''}</FieldError>
+                  <Description className="mt-1 text-xs">
+                    0 表示关闭自动清理
+                  </Description>
+                </NumberField>
+              </Fieldset.Group>
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="size-6 animate-spin text-muted" />
+                <span className="ml-2 text-sm text-muted">加载配置中...</span>
+              </div>
+            )}
+            {eventForm && (
+              <Fieldset.Actions className="flex gap-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onPress={handleResetEventConfig}
+                >
+                  重置
+                </Button>
+                <Button
+                  variant="primary"
+                  onPress={handleSaveEventConfig}
+                  isDisabled={eventSaveStatus.status === 'saving'}
+                >
+                  {eventSaveStatus.status === 'saving' ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      保存中...
+                    </>
+                  ) : (
+                    '保存事件设置'
                   )}
                 </Button>
               </Fieldset.Actions>
