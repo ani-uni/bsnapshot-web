@@ -1,9 +1,10 @@
-import { toast } from '@heroui/react'
+import { Card, Surface, toast } from '@heroui/react'
 import { useAtom } from 'jotai'
 import { useEffect } from 'react'
 
 import { checkUpdateAtom, lastUpdateCheckAtom } from '@/atoms/api'
 import { RequireConnection } from '@/components/RequireConnection'
+import fpkg from '~/package.json'
 
 // import { QueueDisplay } from './QueueDisplay'
 import { ServerInfo } from './ServerInfo'
@@ -33,13 +34,28 @@ export default function HomePage() {
         <h1 className="text-4xl font-bold">欢迎使用 BSnapshot</h1>
 
         <RequireConnection>
+          {/* 版本更新检查 Modal */}
+          <UpdateCheckModal />
           <ServerInfo />
           {/* <QueueDisplay /> */}
         </RequireConnection>
-      </div>
 
-      {/* 版本更新检查 Modal */}
-      <UpdateCheckModal />
+        <Card className="p-6">
+          <Card.Header className="flex flex-col gap-2">
+            <Card.Title>前端信息</Card.Title>
+          </Card.Header>
+          <Card.Content className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Surface variant="secondary" className="rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">前端版本</p>
+                <p className="text-lg font-semibold text-foreground">
+                  v{fpkg.version}
+                </p>
+              </Surface>
+            </div>
+          </Card.Content>
+        </Card>
+      </div>
     </div>
   )
 }

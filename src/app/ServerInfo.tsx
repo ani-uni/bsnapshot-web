@@ -51,7 +51,7 @@ export function ServerInfo() {
                 </p>
               </Surface>
               <Surface variant="secondary" className="rounded-lg p-4">
-                <p className="text-sm text-muted-foreground">应用版本</p>
+                <p className="text-sm text-muted-foreground">后端版本</p>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <p className="text-xl font-bold tracking-tight text-foreground leading-none">
                     v{serverInfo.version}
