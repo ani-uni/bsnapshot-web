@@ -21,8 +21,10 @@ import { RequireConnection } from '@/components/RequireConnection'
 
 type CaptureDetail = {
   cid: string
-  pub: number | null
+  pub: string | null
   upMid: string | null
+  aid: string | null
+  videoSourceState: number | null
 }
 
 type ClipInfo = {
@@ -63,9 +65,37 @@ type User = {
   name: string
 }
 
-function formatTimestamp(ms: number | null) {
-  if (ms == null) return '-'
-  return new Date(ms).toLocaleString()
+function formatTimestamp(dateString: string | null) {
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleString()
+}
+
+function getVideoSourceStatusColor(
+  state: number | null,
+): 'success' | 'warning' | 'danger' | 'default' {
+  switch (state) {
+    case 0:
+      return 'success'
+    case 1:
+      return 'warning'
+    case 2:
+      return 'danger'
+    default:
+      return 'default'
+  }
+}
+
+function getVideoSourceStatusLabel(state: number | null): string {
+  switch (state) {
+    case 0:
+      return '正常'
+    case 1:
+      return '仅UP可见'
+    case 2:
+      return '已失效'
+    default:
+      return '-'
+  }
 }
 
 function getStatusColor(
@@ -202,7 +232,9 @@ export default function CaptureDetailPage() {
         upCount: upData.count,
       })
     } catch (error) {
-      console.error('Failed to load danmaku stats:', error)
+      toast.danger(
+        `加载弹幕统计失败：${error instanceof Error ? error.message : '未知错误'}`,
+      )
     } finally {
       setIsLoadingDanmaku(false)
     }
@@ -296,8 +328,9 @@ export default function CaptureDetailPage() {
         setUserList(usersData)
       }
     } catch (error) {
-      // 后台刷新失败不显示通知
-      console.error('Failed to refresh fetch tasks:', error)
+      toast.danger(
+        `刷新获取任务失败：${error instanceof Error ? error.message : '未知错误'}`,
+      )
     }
   }, [apiBaseUrl, cid])
 
@@ -440,6 +473,26 @@ export default function CaptureDetailPage() {
                   <div className="text-sm text-muted">UP主 mid</div>
                   <div className="font-mono text-sm">
                     {capture?.upMid ?? '-'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted">AID</div>
+                  <div className="font-mono text-sm">{capture?.aid ?? '-'}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted">视频源状态</div>
+                  <div>
+                    <Chip
+                      size="sm"
+                      variant="soft"
+                      color={getVideoSourceStatusColor(
+                        capture?.videoSourceState ?? null,
+                      )}
+                    >
+                      {getVideoSourceStatusLabel(
+                        capture?.videoSourceState ?? null,
+                      )}
+                    </Chip>
                   </div>
                 </div>
                 <div>

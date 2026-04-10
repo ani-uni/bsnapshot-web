@@ -42,4 +42,9 @@ export type EpisodeTreeSection = {
 
 export type CaptureItem = {
   cid: string
+  pub: string | null
+  upMid: string | null
+  upLatest: string | null
+  aid: string | null
+  videoSourceState: number | null
 }

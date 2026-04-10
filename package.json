@@ -1,6 +1,6 @@
 {
   "name": "bsnapshot",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "private": true,
   "description": "Yet another bili full-danmaku fetcher.",
   "homepage": "https://v0.bsnapshot-web.rinne.in/",
@@ -61,7 +61,7 @@
     "@tailwindcss/vite": "^4.2.2",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/luxon": "^3.7.1",
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "cross-env": "^10.1.0",

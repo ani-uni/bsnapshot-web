@@ -2,6 +2,7 @@ import {
   Accordion,
   Button,
   Card,
+  Chip,
   Label,
   Link,
   ListBox,
@@ -37,10 +38,45 @@ type EpisodeItem = {
 
 type CaptureItem = {
   cid: string
-  pub: number | null
+  pub: string | null
   segs: string
   upMid: string | null
-  upLatest: number | null
+  upLatest: string | null
+  aid: string | null
+  videoSourceState: number | null
+}
+
+function formatCaptureDate(dateString: string | null): string {
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleString()
+}
+
+function getVideoSourceStatusColor(
+  state: number | null,
+): 'success' | 'warning' | 'danger' | 'default' {
+  switch (state) {
+    case 0:
+      return 'success'
+    case 1:
+      return 'warning'
+    case 2:
+      return 'danger'
+    default:
+      return 'default'
+  }
+}
+
+function getVideoSourceStatusLabel(state: number | null): string {
+  switch (state) {
+    case 0:
+      return '正常'
+    case 1:
+      return '仅UP可见'
+    case 2:
+      return '已失效'
+    default:
+      return '-'
+  }
 }
 
 type TMDBSeriesInfo = {
@@ -792,6 +828,8 @@ export default function SeasonDetailPage() {
                 <Table.Header>
                   <Table.Column isRowHeader>CID</Table.Column>
                   <Table.Column>发布时间</Table.Column>
+                  <Table.Column>AID</Table.Column>
+                  <Table.Column>视频源状态</Table.Column>
                   <Table.Column>UP主 mid</Table.Column>
                 </Table.Header>
                 <Table.Body
@@ -810,9 +848,21 @@ export default function SeasonDetailPage() {
                         </Link>
                       </Table.Cell>
                       <Table.Cell>
-                        {capture.pub != null
-                          ? new Date(capture.pub).toLocaleString()
-                          : '-'}
+                        {formatCaptureDate(capture.pub)}
+                      </Table.Cell>
+                      <Table.Cell className="font-mono">
+                        {capture.aid ?? '-'}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Chip
+                          size="sm"
+                          variant="soft"
+                          color={getVideoSourceStatusColor(
+                            capture.videoSourceState,
+                          )}
+                        >
+                          {getVideoSourceStatusLabel(capture.videoSourceState)}
+                        </Chip>
                       </Table.Cell>
                       <Table.Cell className="font-mono">
                         {capture.upMid ?? '-'}

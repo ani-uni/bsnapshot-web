@@ -1,8 +1,40 @@
-import { Accordion, Card, Separator, Spinner } from '@heroui/react'
-import { ChevronRight } from 'lucide-react'
-import { useNavigate } from 'react-router'
+import { Card, Chip, Link, Separator, Spinner, Table } from '@heroui/react'
+import { Link as RLink } from 'react-router'
 
 import type { CaptureItem } from './types'
+
+function formatCaptureDate(dateString: string | null): string {
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleString()
+}
+
+function getVideoSourceStatusColor(
+  state: number | null,
+): 'success' | 'warning' | 'danger' | 'default' {
+  switch (state) {
+    case 0:
+      return 'success'
+    case 1:
+      return 'warning'
+    case 2:
+      return 'danger'
+    default:
+      return 'default'
+  }
+}
+
+function getVideoSourceStatusLabel(state: number | null): string {
+  switch (state) {
+    case 0:
+      return '正常'
+    case 1:
+      return '仅UP可见'
+    case 2:
+      return '已失效'
+    default:
+      return '-'
+  }
+}
 
 export function CaptureList({
   captureList,
@@ -11,8 +43,6 @@ export function CaptureList({
   captureList: CaptureItem[]
   isLoading: boolean
 }) {
-  const navigate = useNavigate()
-
   return (
     <Card className="p-6">
       <Card.Header>
@@ -27,22 +57,46 @@ export function CaptureList({
         ) : captureList.length === 0 ? (
           <p className="text-muted">暂无采集</p>
         ) : (
-          <Accordion>
-            {captureList.map((capture) => (
-              <Accordion.Item key={capture.cid} id={capture.cid}>
-                <Accordion.Heading>
-                  <Accordion.Trigger
-                    onPress={() => navigate(`/tasks/captures/${capture.cid}`)}
-                  >
-                    <span className="font-mono">{capture.cid}</span>
-                    <Accordion.Indicator>
-                      <ChevronRight />
-                    </Accordion.Indicator>
-                  </Accordion.Trigger>
-                </Accordion.Heading>
-              </Accordion.Item>
-            ))}
-          </Accordion>
+          <Table variant="secondary">
+            <Table.ScrollContainer>
+              <Table.Content aria-label="采集列表" className="min-w-150">
+                <Table.Header>
+                  <Table.Column isRowHeader>CID</Table.Column>
+                  <Table.Column>发布时间</Table.Column>
+                  <Table.Column>AID</Table.Column>
+                  <Table.Column>视频源状态</Table.Column>
+                </Table.Header>
+                <Table.Body items={captureList}>
+                  {(capture) => (
+                    <Table.Row id={capture.cid}>
+                      <Table.Cell>
+                        <Link>
+                          <RLink to={`/tasks/captures/${capture.cid}`}>
+                            {capture.cid}
+                          </RLink>
+                        </Link>
+                      </Table.Cell>
+                      <Table.Cell>{formatCaptureDate(capture.pub)}</Table.Cell>
+                      <Table.Cell className="font-mono">
+                        {capture.aid ?? '-'}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Chip
+                          size="sm"
+                          variant="soft"
+                          color={getVideoSourceStatusColor(
+                            capture.videoSourceState,
+                          )}
+                        >
+                          {getVideoSourceStatusLabel(capture.videoSourceState)}
+                        </Chip>
+                      </Table.Cell>
+                    </Table.Row>
+                  )}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
+          </Table>
         )}
       </Card.Content>
     </Card>
