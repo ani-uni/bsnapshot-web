@@ -306,6 +306,12 @@ export const saveConfigAtom = atom(
  */
 export interface EventConfig {
   autoDelTimeAway: number
+  autoDelCountAway: number
+}
+
+export interface EventConfigPatch {
+  autoDelTimeAway?: number | null
+  autoDelCountAway?: number | null
 }
 
 const EVENT_SECONDS_PER_DAY = 24 * 60 * 60
@@ -342,7 +348,7 @@ export const eventAtom = unwrap(eventBaseAtom, (prev) => prev ?? null)
 /**
  * Event 修改项 atom（只保存用户修改的字段）
  */
-export const eventPatchAtom = atom<Partial<EventConfig>>({})
+export const eventPatchAtom = atom<EventConfigPatch>({})
 
 /**
  * Event 表单 atom（显示用，合并初始值 + 修改项）
@@ -351,7 +357,11 @@ export const eventFormAtom = atom((get) => {
   const config = get(eventAtom)
   if (!config) return null
   const patch = get(eventPatchAtom)
-  return { ...config, ...patch }
+  return {
+    ...config,
+    autoDelTimeAway: patch.autoDelTimeAway ?? config.autoDelTimeAway,
+    autoDelCountAway: patch.autoDelCountAway ?? config.autoDelCountAway,
+  }
 })
 
 /**
@@ -377,6 +387,28 @@ export const eventAutoDelTimeAwayDaysAtom = atom(
 )
 
 /**
+ * Event 自动清理条数 atom（显示与提交统一状态）
+ */
+export const eventAutoDelCountAwayAtom = atom(
+  (get) => {
+    const form = get(eventFormAtom)
+    if (!form) return null
+    return form.autoDelCountAway
+  },
+  (get, set, nextCount: number) => {
+    const normalizedCount = Number.isFinite(nextCount)
+      ? Math.max(0, Math.trunc(nextCount))
+      : 0
+    const patch = get(eventPatchAtom)
+
+    set(eventPatchAtom, {
+      ...patch,
+      autoDelCountAway: normalizedCount,
+    })
+  },
+)
+
+/**
  * Event 保存状态 atom
  */
 export const eventSaveStatusAtom = atom<{
@@ -391,16 +423,15 @@ export const eventSaveStatusAtom = atom<{
  */
 export const saveEventConfigAtom = atom(
   null,
-  async (get, set, formData?: Partial<EventConfig>) => {
+  async (get, set, formData?: EventConfigPatch) => {
     set(eventSaveStatusAtom, { status: 'saving' })
 
     try {
-      const baseConfig = get(eventAtom)
-      if (!baseConfig) {
-        throw new Error('Event config not loaded')
-      }
       const patch = get(eventPatchAtom)
-      const payload = { ...baseConfig, ...patch, ...formData }
+      const sourcePayload = formData ?? patch
+      const payload = Object.fromEntries(
+        Object.entries(sourcePayload).filter(([, value]) => value !== undefined),
+      ) as EventConfigPatch
       const url = get(apiBaseUrlAtom)
       const response = await fetch(`${url}/api/config/event`, {
         method: 'PATCH',

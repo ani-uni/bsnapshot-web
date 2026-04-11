@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   apiBaseUrlAtom,
   apiConnectionStatusAtom,
+  eventAutoDelCountAwayAtom,
   eventAutoDelTimeAwayDaysAtom,
   eventFormAtom,
   eventPatchAtom,
@@ -65,8 +66,6 @@ const validateDanmakuExportTemplate = (values: {
   return errors
 }
 
-const SECONDS_PER_DAY = 24 * 60 * 60
-
 const validateEventConfigDays = (value: number) => {
   if (!Number.isFinite(value) || Number.isNaN(value)) {
     return '请输入有效数字'
@@ -78,6 +77,22 @@ const validateEventConfigDays = (value: number) => {
 
   if (value < 0) {
     return '天数不能小于 0'
+  }
+
+  return undefined
+}
+
+const validateEventConfigCount = (value: number) => {
+  if (!Number.isFinite(value) || Number.isNaN(value)) {
+    return '请输入有效数字'
+  }
+
+  if (!Number.isInteger(value)) {
+    return '请输入整数'
+  }
+
+  if (value < 0) {
+    return '不能小于 0'
   }
 
   return undefined
@@ -113,7 +128,10 @@ export default function SettingsPage() {
   const [eventAutoDelTimeAwayDays, setEventAutoDelTimeAwayDays] = useAtom(
     eventAutoDelTimeAwayDaysAtom,
   )
-  const [eventPatch, setEventPatch] = useAtom(eventPatchAtom)
+  const [eventAutoDelCountAway, setEventAutoDelCountAway] = useAtom(
+    eventAutoDelCountAwayAtom,
+  )
+  const [, setEventPatch] = useAtom(eventPatchAtom)
   const [, saveEventConfig] = useAtom(saveEventConfigAtom)
   const eventSaveStatus = useAtomValue(eventSaveStatusAtom)
   const tmdbForm = useAtomValue(tmdbFormAtom)
@@ -129,6 +147,13 @@ export default function SettingsPage() {
 
     return validateEventConfigDays(eventAutoDelTimeAwayDays)
   }, [eventAutoDelTimeAwayDays])
+  const eventCountValidation = useMemo(() => {
+    if (eventAutoDelCountAway == null) {
+      return '请输入有效数字'
+    }
+
+    return validateEventConfigCount(eventAutoDelCountAway)
+  }, [eventAutoDelCountAway])
 
   // 只在用户手动点击测试时显示连接相关的 toast
   useEffect(() => {
@@ -280,8 +305,13 @@ export default function SettingsPage() {
       return
     }
 
+    if (eventCountValidation) {
+      toast.danger(`保存失败：${eventCountValidation}`)
+      return
+    }
+
     try {
-      await saveEventConfig({ autoDelTimeAway: eventForm.autoDelTimeAway })
+      await saveEventConfig()
     } catch (saveError) {
       toast.danger(
         `保存失败：${saveError instanceof Error ? saveError.message : '未知错误'}`,
@@ -289,12 +319,34 @@ export default function SettingsPage() {
     }
   }
 
-  const handleResetEventConfig = () => {
+  const handleResetEventAutoDelTimeAway = async () => {
     if (!eventForm) return
 
-    setEventPatch({ ...eventPatch, autoDelTimeAway: 7 * SECONDS_PER_DAY })
-    setEventAutoDelTimeAwayDays(7)
-    toast.success('已重置事件自动清理时长为默认值')
+    // 避免带上未保存的其他 patch，按字段最小提交
+    setEventPatch({})
+
+    try {
+      await saveEventConfig({ autoDelTimeAway: null })
+    } catch (resetError) {
+      toast.danger(
+        `重置失败：${resetError instanceof Error ? resetError.message : '未知错误'}`,
+      )
+    }
+  }
+
+  const handleResetEventAutoDelCountAway = async () => {
+    if (!eventForm) return
+
+    // 避免带上未保存的其他 patch，按字段最小提交
+    setEventPatch({})
+
+    try {
+      await saveEventConfig({ autoDelCountAway: null })
+    } catch (resetError) {
+      toast.danger(
+        `重置失败：${resetError instanceof Error ? resetError.message : '未知错误'}`,
+      )
+    }
   }
 
   const handleResetDefaultTemplate = () => {
@@ -690,26 +742,67 @@ export default function SettingsPage() {
             <Description>配置事件自动清理的保留时长</Description>
             {eventForm ? (
               <Fieldset.Group className="space-y-4">
-                <NumberField
-                  value={eventAutoDelTimeAwayDays ?? 0}
-                  onChange={(value) => setEventAutoDelTimeAwayDays(value ?? 0)}
-                  validationBehavior="aria"
-                  validate={validateEventConfigDays}
-                  isInvalid={Boolean(eventDayValidation)}
-                  minValue={0}
-                  step={1}
-                >
-                  <Label>自动清理保留时长（天）</Label>
-                  <NumberField.Group>
-                    <NumberField.DecrementButton />
-                    <NumberField.Input />
-                    <NumberField.IncrementButton />
-                  </NumberField.Group>
-                  <FieldError>{eventDayValidation ?? ''}</FieldError>
-                  <Description className="mt-1 text-xs">
-                    0 表示关闭自动清理
-                  </Description>
-                </NumberField>
+                <div className="space-y-2">
+                  <NumberField
+                    value={eventAutoDelTimeAwayDays ?? 0}
+                    onChange={(value) => setEventAutoDelTimeAwayDays(value ?? 0)}
+                    validationBehavior="aria"
+                    validate={validateEventConfigDays}
+                    isInvalid={Boolean(eventDayValidation)}
+                    minValue={0}
+                    step={1}
+                  >
+                    <Label>按时间清理（天）</Label>
+                    <NumberField.Group>
+                      <NumberField.DecrementButton />
+                      <NumberField.Input />
+                      <NumberField.IncrementButton />
+                    </NumberField.Group>
+                    <FieldError>{eventDayValidation ?? ''}</FieldError>
+                    <Description className="mt-1 text-xs">
+                      0 表示关闭时间清理，删除超过此天数的旧事件
+                    </Description>
+                  </NumberField>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onPress={handleResetEventAutoDelTimeAway}
+                    isDisabled={eventSaveStatus.status === 'saving'}
+                  >
+                    重置时间项
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <NumberField
+                    value={eventAutoDelCountAway ?? 0}
+                    onChange={(value) => setEventAutoDelCountAway(value ?? 0)}
+                    validationBehavior="aria"
+                    validate={validateEventConfigCount}
+                    isInvalid={Boolean(eventCountValidation)}
+                    minValue={0}
+                    step={1}
+                  >
+                    <Label>按数量清理（条）</Label>
+                    <NumberField.Group>
+                      <NumberField.DecrementButton />
+                      <NumberField.Input />
+                      <NumberField.IncrementButton />
+                    </NumberField.Group>
+                    <FieldError>{eventCountValidation ?? ''}</FieldError>
+                    <Description className="mt-1 text-xs">
+                      0 表示关闭数量清理，当事件超过此条数时删除早期事件
+                    </Description>
+                  </NumberField>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onPress={handleResetEventAutoDelCountAway}
+                    isDisabled={eventSaveStatus.status === 'saving'}
+                  >
+                    重置数量项
+                  </Button>
+                </div>
               </Fieldset.Group>
             ) : (
               <div className="flex items-center justify-center py-8">
@@ -719,13 +812,6 @@ export default function SettingsPage() {
             )}
             {eventForm && (
               <Fieldset.Actions className="flex gap-3">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onPress={handleResetEventConfig}
-                >
-                  重置
-                </Button>
                 <Button
                   variant="primary"
                   onPress={handleSaveEventConfig}
