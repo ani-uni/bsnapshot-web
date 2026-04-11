@@ -799,7 +799,7 @@ export default function SeasonDetailPage() {
                     <Accordion.Trigger
                       onPress={() => navigate(`/groups/ep/${episode.id}`)}
                     >
-                      {Number.isSafeInteger(episode.sn)
+                      {!Number.isNaN(episode.sn)
                         ? `第 ${episode.sn} 集 - `
                         : ''}
                       {displayTitle(episode.title)}
@@ -847,9 +847,7 @@ export default function SeasonDetailPage() {
                           </RLink>
                         </Link>
                       </Table.Cell>
-                      <Table.Cell>
-                        {formatCaptureDate(capture.pub)}
-                      </Table.Cell>
+                      <Table.Cell>{formatCaptureDate(capture.pub)}</Table.Cell>
                       <Table.Cell className="font-mono">
                         {capture.aid ?? '-'}
                       </Table.Cell>
@@ -1145,7 +1143,7 @@ export default function SeasonDetailPage() {
               </Button>
               <Button
                 isPending={isCreatingManual}
-                isDisabled={!Number.isSafeInteger(manualSn)}
+                isDisabled={Number.isNaN(manualSn)}
                 onPress={() => void handleCreateManual()}
               >
                 创建
