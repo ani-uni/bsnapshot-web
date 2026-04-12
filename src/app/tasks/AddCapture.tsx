@@ -5,6 +5,7 @@ import {
   Button,
   Calendar,
   Card,
+  Chip,
   DateField,
   DatePicker,
   Header,
@@ -33,6 +34,39 @@ import type {
 } from './types'
 import { detectIdType, episodeLabel } from './utils'
 
+function buildPregenEdit(data: PregenResponse): PregenEdit {
+  const presetByCid = new Map(
+    (data.preset ?? []).map((item) => [item.cid, item]),
+  )
+
+  return {
+    aid: data.aid,
+    bvid: data.bvid,
+    title: data.title,
+    pubdate: data.pubdate,
+    upMid: String(data.upMid),
+    pages: data.pages.map((page) => {
+      const preset = presetByCid.get(page.cid)
+      return {
+        cid: page.cid,
+        page: page.page,
+        part: page.part,
+        duration: page.duration,
+        clips: preset?.clips.length
+          ? preset.clips.map(
+              (clip) => [clip[0], clip[1], clip[2], clip[3]] as [
+                number,
+                number,
+                number,
+                string?,
+              ],
+            )
+          : [[0, page.duration, 0]],
+      }
+    }),
+  }
+}
+
 export default function AddCapture({
   apiBaseUrl,
   onCaptureCreated,
@@ -46,6 +80,7 @@ export default function AddCapture({
   const [pregenEdit, setPregenEdit] = useState<PregenEdit | null>(null)
   const [isCreatingCaptures, setIsCreatingCaptures] = useState(false)
   const [isChecked, setIsChecked] = useState(false)
+  const [hasFastcapPreset, setHasFastcapPreset] = useState(false)
   const [creationProgress, setCreationProgress] = useState<{
     current: number
     total: number
@@ -118,20 +153,15 @@ export default function AddCapture({
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as PregenResponse
-      setPregenEdit({
-        aid: data.aid,
-        bvid: data.bvid,
-        title: data.title,
-        pubdate: data.pubdate,
-        upMid: String(data.upMid),
-        pages: data.pages.map((p) => ({
-          cid: p.cid,
-          page: p.page,
-          part: p.part,
-          duration: p.duration,
-          clips: [[0, p.duration, 0]],
-        })),
-      })
+
+      // 预加载剧集列表，确保 preset 里的 episodeId 能被 Autocomplete 正确映射显示。
+      if (!episodeTreeLoaded) {
+        setEpisodeTreeLoaded(true)
+        await fetchEpisodeTree()
+      }
+
+      setHasFastcapPreset((data.preset?.length ?? 0) > 0)
+      setPregenEdit(buildPregenEdit(data))
       setIsChecked(false)
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '未知错误'
@@ -143,6 +173,7 @@ export default function AddCapture({
 
   const handleClearPregen = () => {
     setPregenEdit(null)
+    setHasFastcapPreset(false)
     setIdInput('')
     setIsChecked(false)
   }
@@ -331,6 +362,7 @@ export default function AddCapture({
 
       toast.success('采集创建完成')
       setPregenEdit(null)
+      setHasFastcapPreset(false)
       setIdInput('')
       setIsChecked(false)
       onCaptureCreated()
@@ -418,6 +450,12 @@ export default function AddCapture({
         {pregenEdit && (
           <div className="mt-4 space-y-4">
             <div className="space-y-3 rounded border border-border p-4">
+              {hasFastcapPreset && (
+                <Chip color="success" variant="soft" size="sm">
+                  UP主已为该视频配置FastCap标签，已自动解析并绑定已存在的剧集
+                </Chip>
+              )}
+
               {/* Read-only fields */}
               {idType === 'auto' && (
                 <>
@@ -662,7 +700,10 @@ export default function AddCapture({
                                   }
                                 }}
                                 onOpenChange={(isOpen) => {
-                                  if (isOpen) ensureEpisodeTree()
+                                  if (isOpen) {
+                                    setEpisodeSearch('')
+                                    ensureEpisodeTree()
+                                  }
                                 }}
                                 variant="secondary"
                                 isDisabled={isChecked}

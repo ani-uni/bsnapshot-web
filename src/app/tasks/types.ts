@@ -10,6 +10,13 @@ export type PregenResponse = {
     part: string
     duration: number
   }[]
+  preset?: {
+    cid: string
+    aid?: string
+    pubdate?: number
+    upMid?: string
+    clips: Array<[number, number, number, string?]>
+  }[]
 }
 
 export type PageEdit = {
