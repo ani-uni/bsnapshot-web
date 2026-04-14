@@ -363,7 +363,7 @@ export default function SeasonDetailPage() {
   const handlePatchEpisodeTitle = async (
     episodeId: string,
     sn: number,
-    title: string,
+    title?: string,
     ref?: { src: 'tmdb'; urlc: string } | { src: 'bgmtv'; episode_id: number },
   ) => {
     try {
@@ -564,7 +564,7 @@ export default function SeasonDetailPage() {
         if (!episode) continue
         const bgmtvEpisode = bgmtvEpisodes.find((ep) => ep.sort === sn)
         const title = bgmtvEpisode?.name_cn || bgmtvEpisode?.name
-        if (title && bgmtvEpisode) {
+        if (bgmtvEpisode) {
           await handlePatchEpisodeTitle(episode.id, sn, title, {
             src: 'bgmtv',
             episode_id: bgmtvEpisode.id,
