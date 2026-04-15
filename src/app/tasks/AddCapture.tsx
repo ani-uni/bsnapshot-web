@@ -1,4 +1,4 @@
-import type { DateValue, Key, TimeValue } from '@heroui/react'
+import type { DateValue, TimeValue } from '@heroui/react'
 import {
   Accordion,
   Autocomplete,
@@ -23,10 +23,29 @@ import {
   useFilter,
 } from '@heroui/react'
 import { fromAbsolute } from '@internationalized/date'
+import { useAtom } from 'jotai'
 import { Plus, Trash2 } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 
-import FastCapModal, { type FastCapModalState } from '@/components/FastCapModal'
+import {
+  addCaptureCreationProgressAtom,
+  addCaptureEpisodeSearchAtom,
+  addCaptureEpisodeTreeAtom,
+  addCaptureEpisodeTreeLoadedAtom,
+  addCaptureFastCapModalContentAtom,
+  addCaptureFastCapModalStateAtom,
+  addCaptureFastcapManualAtom,
+  addCaptureHasFastcapPresetAtom,
+  addCaptureIdInputAtom,
+  addCaptureIdTypeAtom,
+  addCaptureIsAdvancedModeAtom,
+  addCaptureIsCheckedAtom,
+  addCaptureIsCreatingCapturesAtom,
+  addCaptureIsFastCapModalOpenAtom,
+  addCaptureIsFetchingPregenAtom,
+  addCapturePregenEditAtom,
+} from '@/atoms/tasks/addCapture'
+import FastCapModal from '@/components/FastCapModal'
 
 import { ClipTimeInput } from './ClipTimeInput'
 import type {
@@ -78,27 +97,45 @@ export default function AddCapture({
   apiBaseUrl: string
   onCaptureCreated: () => void
 }) {
-  const [idType, setIdType] = useState<Key>('auto')
-  const [idInput, setIdInput] = useState('')
-  const [isAdvancedMode, setIsAdvancedMode] = useState(false)
-  const [fastcapManual, setFastcapManual] = useState('')
-  const [isFetchingPregen, setIsFetchingPregen] = useState(false)
-  const [pregenEdit, setPregenEdit] = useState<PregenEdit | null>(null)
-  const [isCreatingCaptures, setIsCreatingCaptures] = useState(false)
-  const [isChecked, setIsChecked] = useState(false)
-  const [hasFastcapPreset, setHasFastcapPreset] = useState(false)
-  const [creationProgress, setCreationProgress] = useState<{
-    current: number
-    total: number
-  } | null>(null)
-  const [isFastCapModalOpen, setIsFastCapModalOpen] = useState(false)
-  const [fastCapModalState, setFastCapModalState] =
-    useState<FastCapModalState>('idle')
-  const [fastCapModalContent, setFastCapModalContent] = useState('')
+  const [idType, setIdType] = useAtom(addCaptureIdTypeAtom)
+  const [idInput, setIdInput] = useAtom(addCaptureIdInputAtom)
+  const [isAdvancedMode, setIsAdvancedMode] = useAtom(
+    addCaptureIsAdvancedModeAtom,
+  )
+  const [fastcapManual, setFastcapManual] = useAtom(
+    addCaptureFastcapManualAtom,
+  )
+  const [isFetchingPregen, setIsFetchingPregen] = useAtom(
+    addCaptureIsFetchingPregenAtom,
+  )
+  const [pregenEdit, setPregenEdit] = useAtom(addCapturePregenEditAtom)
+  const [isCreatingCaptures, setIsCreatingCaptures] = useAtom(
+    addCaptureIsCreatingCapturesAtom,
+  )
+  const [isChecked, setIsChecked] = useAtom(addCaptureIsCheckedAtom)
+  const [hasFastcapPreset, setHasFastcapPreset] = useAtom(
+    addCaptureHasFastcapPresetAtom,
+  )
+  const [creationProgress, setCreationProgress] = useAtom(
+    addCaptureCreationProgressAtom,
+  )
+  const [isFastCapModalOpen, setIsFastCapModalOpen] = useAtom(
+    addCaptureIsFastCapModalOpenAtom,
+  )
+  const [fastCapModalState, setFastCapModalState] = useAtom(
+    addCaptureFastCapModalStateAtom,
+  )
+  const [fastCapModalContent, setFastCapModalContent] = useAtom(
+    addCaptureFastCapModalContentAtom,
+  )
 
-  const [episodeTree, setEpisodeTree] = useState<EpisodeTreeSection[]>([])
-  const [episodeTreeLoaded, setEpisodeTreeLoaded] = useState(false)
-  const [episodeSearch, setEpisodeSearch] = useState('')
+  const [episodeTree, setEpisodeTree] = useAtom(addCaptureEpisodeTreeAtom)
+  const [episodeTreeLoaded, setEpisodeTreeLoaded] = useAtom(
+    addCaptureEpisodeTreeLoadedAtom,
+  )
+  const [episodeSearch, setEpisodeSearch] = useAtom(
+    addCaptureEpisodeSearchAtom,
+  )
   const { contains } = useFilter({ sensitivity: 'base' })
 
   const fetchEpisodeTree = useCallback(async () => {
@@ -470,7 +507,9 @@ export default function AddCapture({
         <div className="flex items-end gap-3">
           <Select
             value={idType}
-            onChange={(value) => setIdType(value || 'auto')}
+            onChange={(value) =>
+              setIdType(value === 'cid' ? 'cid' : 'auto')
+            }
             className="w-28"
             variant="secondary"
           >
