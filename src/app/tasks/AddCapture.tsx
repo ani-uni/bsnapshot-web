@@ -16,6 +16,7 @@ import {
   SearchField,
   Select,
   Separator,
+  TextArea,
   TextField,
   TimeField,
   toast,
@@ -34,7 +35,7 @@ import type {
   PregenResponse,
   SeasonEpisodeItem,
 } from './types'
-import { detectIdType, episodeLabel } from './utils'
+import { episodeLabel } from './utils'
 
 function buildPregenEdit(data: PregenResponse): PregenEdit {
   const presetByCid = new Map(
@@ -79,6 +80,8 @@ export default function AddCapture({
 }) {
   const [idType, setIdType] = useState<Key>('auto')
   const [idInput, setIdInput] = useState('')
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false)
+  const [fastcapManual, setFastcapManual] = useState('')
   const [isFetchingPregen, setIsFetchingPregen] = useState(false)
   const [pregenEdit, setPregenEdit] = useState<PregenEdit | null>(null)
   const [isCreatingCaptures, setIsCreatingCaptures] = useState(false)
@@ -151,12 +154,25 @@ export default function AddCapture({
       return
     }
 
-    const type = idType === 'auto' ? detectIdType(input) : String(idType)
+    const manualFastcap = fastcapManual.trim()
+    if (isAdvancedMode && !manualFastcap) {
+      toast.warning('请输入 FastCap 配置')
+      return
+    }
+
+    const type = String(idType)
 
     setIsFetchingPregen(true)
     try {
       const res = await fetch(
         `${apiBaseUrl}/api/tasks/pregen/${type}/${encodeURIComponent(input)}`,
+        isAdvancedMode && manualFastcap
+          ? {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fastcap_manual: manualFastcap }),
+            }
+          : undefined,
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as PregenResponse
@@ -183,6 +199,13 @@ export default function AddCapture({
     setHasFastcapPreset(false)
     setIdInput('')
     setIsChecked(false)
+    setIsAdvancedMode(false)
+    setFastcapManual('')
+  }
+
+  const handleToggleAdvancedMode = () => {
+    setIsAdvancedMode((prev) => !prev)
+    setFastcapManual('')
   }
 
   const handleDurationChange = (pageIndex: number, newDuration: number) => {
@@ -488,7 +511,7 @@ export default function AddCapture({
           >
             <Label className="sr-only">ID</Label>
             <Input
-              placeholder={`输入${idType === 'auto' ? 'aid / bvid' : 'cid'}`}
+              placeholder={`输入${idType === 'auto' ? 'aid / bvid / B站链接 (暂不支持合集、列表)' : 'cid'}`}
             />
           </TextField>
 
@@ -499,7 +522,32 @@ export default function AddCapture({
           >
             查询
           </Button>
+
+          <Button variant="secondary" onPress={handleToggleAdvancedMode}>
+            高级
+          </Button>
         </div>
+
+        {isAdvancedMode && (
+          <div className="mt-4 rounded border border-border p-4">
+            <div className="mb-2 space-y-1">
+              <div className="text-sm font-medium">高级查询</div>
+              <div className="text-sm text-muted">
+                在此手动填写 FastCap 配置，查询时会优先使用这里的内容。
+              </div>
+            </div>
+            <TextArea
+              value={fastcapManual}
+              onChange={(e) => setFastcapManual(e.target.value)}
+              placeholder="粘贴 FastCap 配置，需包含```fastcap <TOML内容> ```"
+              rows={8}
+              cols={30}
+              variant="secondary"
+              disabled={isFetchingPregen || isCreatingCaptures}
+              className="font-mono text-sm"
+            />
+          </div>
+        )}
 
         {/* Pregen result */}
         {pregenEdit && (
@@ -507,7 +555,8 @@ export default function AddCapture({
             <div className="space-y-3 rounded border border-border p-4">
               {hasFastcapPreset && (
                 <Chip color="success" variant="soft" size="sm">
-                  UP主已为该视频配置FastCap标签，已自动解析并绑定已存在的剧集
+                  {!!fastcapManual || 'UP主'}
+                  已为该视频配置FastCap标签，已自动解析并绑定已存在的剧集
                 </Chip>
               )}
 
@@ -875,7 +924,8 @@ export default function AddCapture({
                       pregenEdit.pages.filter((p) => p.clips.some((c) => c[3]))
                         .length
                     }
-                    /{pregenEdit.pages.filter((p) => p.clips.length > 0).length})
+                    /{pregenEdit.pages.filter((p) => p.clips.length > 0).length}
+                    )
                   </span>
                 )}
               </Button>
