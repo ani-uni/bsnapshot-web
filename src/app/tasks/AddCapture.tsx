@@ -25,6 +25,8 @@ import { fromAbsolute } from '@internationalized/date'
 import { Plus, Trash2 } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
+import FastCapModal, { type FastCapModalState } from '@/components/FastCapModal'
+
 import { ClipTimeInput } from './ClipTimeInput'
 import type {
   EpisodeTreeSection,
@@ -54,12 +56,13 @@ function buildPregenEdit(data: PregenResponse): PregenEdit {
         duration: page.duration,
         clips: preset?.clips.length
           ? preset.clips.map(
-              (clip) => [clip[0], clip[1], clip[2], clip[3]] as [
-                number,
-                number,
-                number,
-                string?,
-              ],
+              (clip) =>
+                [clip[0], clip[1], clip[2], clip[3]] as [
+                  number,
+                  number,
+                  number,
+                  string?,
+                ],
             )
           : [[0, page.duration, 0]],
       }
@@ -85,6 +88,10 @@ export default function AddCapture({
     current: number
     total: number
   } | null>(null)
+  const [isFastCapModalOpen, setIsFastCapModalOpen] = useState(false)
+  const [fastCapModalState, setFastCapModalState] =
+    useState<FastCapModalState>('idle')
+  const [fastCapModalContent, setFastCapModalContent] = useState('')
 
   const [episodeTree, setEpisodeTree] = useState<EpisodeTreeSection[]>([])
   const [episodeTreeLoaded, setEpisodeTreeLoaded] = useState(false)
@@ -321,6 +328,54 @@ export default function AddCapture({
       return { ...prev, pages: newPages }
     })
     setIsChecked(true)
+  }
+
+  const handleOpenFastCapExport = async () => {
+    if (!pregenEdit) return
+
+    const pagesToExport = pregenEdit.pages
+
+    if (pagesToExport.length === 0) {
+      toast.warning('没有可导出的采集')
+      return
+    }
+
+    if (!allClipsHaveEpisode) {
+      toast.warning('请先为所有片段绑定剧集后再导出 FastCap')
+      return
+    }
+
+    setIsFastCapModalOpen(true)
+    setFastCapModalState('loading')
+    setFastCapModalContent('')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/tasks/captures/fastcap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          pagesToExport.map((page) => ({
+            clips: page.clips,
+            cid: page.cid,
+            aid: pregenEdit.aid || undefined,
+            pubdate: pregenEdit.pubdate || undefined,
+            upMid: pregenEdit.upMid || undefined,
+          })),
+        ),
+      })
+
+      const text = await response.text()
+      if (!response.ok) {
+        throw new Error(text.trim() || `HTTP ${response.status}`)
+      }
+
+      setFastCapModalState('success')
+      setFastCapModalContent(text.trim())
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '未知错误'
+      setFastCapModalState('error')
+      setFastCapModalContent(errorMsg)
+    }
   }
 
   const handleCreateAll = async () => {
@@ -701,7 +756,6 @@ export default function AddCapture({
                                 }}
                                 onOpenChange={(isOpen) => {
                                   if (isOpen) {
-                                    setEpisodeSearch('')
                                     ensureEpisodeTree()
                                   }
                                 }}
@@ -796,6 +850,13 @@ export default function AddCapture({
                 清除
               </Button>
               <Button
+                variant="secondary"
+                isDisabled={isCreatingCaptures || !allClipsHaveEpisode}
+                onPress={() => void handleOpenFastCapExport()}
+              >
+                导出为 FastCap
+              </Button>
+              <Button
                 isPending={isCreatingCaptures}
                 isDisabled={!isChecked && !allClipsHaveEpisode}
                 onPress={() => {
@@ -814,13 +875,25 @@ export default function AddCapture({
                       pregenEdit.pages.filter((p) => p.clips.some((c) => c[3]))
                         .length
                     }
-                    /{pregenEdit.pages.length})
+                    /{pregenEdit.pages.filter((p) => p.clips.length > 0).length})
                   </span>
                 )}
               </Button>
             </div>
           </div>
         )}
+        <FastCapModal
+          isOpen={isFastCapModalOpen}
+          onOpenChange={(open) => {
+            setIsFastCapModalOpen(open)
+            if (!open) {
+              setFastCapModalState('idle')
+              setFastCapModalContent('')
+            }
+          }}
+          state={fastCapModalState}
+          content={fastCapModalContent}
+        />
       </Card.Content>
     </Card>
   )

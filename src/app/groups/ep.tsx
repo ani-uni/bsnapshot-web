@@ -13,12 +13,10 @@ import {
   Table,
   toast,
 } from '@heroui/react'
-import clipboard from 'clipboardy'
 import { useAtom, useAtomValue } from 'jotai'
-import { ChevronDown, Copy, Trash2 } from 'lucide-react'
+import { ChevronDown, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
-import { codeToHtml } from 'shiki'
 
 import { renderFilenameTemplate } from '@/app/groups/filename'
 import { apiBaseUrlAtom } from '@/atoms/api'
@@ -28,6 +26,7 @@ import {
   lastUsedDanmakuExportFormatAtom,
 } from '@/atoms/groups/export'
 import EditableText from '@/components/EditableText'
+import FastCapModal, { type FastCapModalState } from '@/components/FastCapModal'
 import { TMDB_IMAGE_PREFIX } from '@/constants/tmdb'
 
 type EpisodeDetail = {
@@ -169,31 +168,6 @@ type DanmakuExportSource = {
   count: number
 }
 
-type FastCapExportState = {
-  status: 'idle' | 'loading' | 'success' | 'error'
-  content: string
-}
-
-function injectFastCapFenceToShikiHtml(html: string) {
-  const opening = '<code>'
-  const closing = '</code>'
-  const codeStart = html.indexOf(opening)
-  const codeEnd = html.lastIndexOf(closing)
-
-  if (codeStart === -1 || codeEnd === -1 || codeEnd <= codeStart) {
-    return html
-  }
-
-  const beforeCode = html.slice(0, codeStart + opening.length)
-  const codeBody = html.slice(codeStart + opening.length, codeEnd)
-  const afterCode = html.slice(codeEnd)
-
-  const fenceStart = '<span class="line"><span>```fastcap</span></span><br />'
-  const fenceEnd = '<br /><span class="line"><span>```</span></span>'
-
-  return `${beforeCode}${fenceStart}${codeBody}${fenceEnd}${afterCode}`
-}
-
 const DANMAKU_EXPORT_OPTIONS: DanmakuExportOption[] = [
   {
     format: 'danuni.json',
@@ -279,13 +253,13 @@ export default function EpisodeDetailPage() {
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [exportingKey, setExportingKey] = useState<string | null>(null)
   const [showFastCapDialog, setShowFastCapDialog] = useState(false)
-  const [fastCapExportState, setFastCapExportState] =
-    useState<FastCapExportState>({
-      status: 'idle',
-      content: '',
-    })
-  const [fastCapHighlightedHtml, setFastCapHighlightedHtml] = useState('')
-  const [isHighlightingFastCap, setIsHighlightingFastCap] = useState(false)
+  const [fastCapExportState, setFastCapExportState] = useState<{
+    status: FastCapModalState
+    content: string
+  }>({
+    status: 'idle',
+    content: '',
+  })
   const [lastUsedFormat, setLastUsedFormat] = useAtom(
     lastUsedDanmakuExportFormatAtom,
   )
@@ -526,68 +500,6 @@ export default function EpisodeDetailPage() {
       setFastCapExportState({ status: 'error', content: errorMsg })
     }
   }
-
-  const closeFastCapDialog = () => {
-    setShowFastCapDialog(false)
-    setFastCapExportState({ status: 'idle', content: '' })
-    setFastCapHighlightedHtml('')
-    setIsHighlightingFastCap(false)
-  }
-
-  const handleCopyFastCap = async () => {
-    if (fastCapExportState.status !== 'success') return
-    const text = `\`\`\`fastcap\n${fastCapExportState.content}\n\`\`\``
-    await clipboard
-      .write(text)
-      .then(() => {
-        toast.success('已复制 FastCap 配置到剪贴板')
-      })
-      .catch((error) => {
-        const errorMsg = error instanceof Error ? error.message : '未知错误'
-        toast.danger(`复制失败：${errorMsg}`)
-      })
-  }
-
-  useEffect(() => {
-    if (
-      fastCapExportState.status !== 'success' ||
-      !fastCapExportState.content
-    ) {
-      setFastCapHighlightedHtml('')
-      setIsHighlightingFastCap(false)
-      return
-    }
-
-    let canceled = false
-    setIsHighlightingFastCap(true)
-
-    void (async () => {
-      try {
-        const html = await codeToHtml(fastCapExportState.content, {
-          lang: 'toml',
-          themes: {
-            light: 'github-light',
-            dark: 'github-dark',
-          },
-        })
-        if (!canceled) {
-          setFastCapHighlightedHtml(injectFastCapFenceToShikiHtml(html))
-        }
-      } catch {
-        if (!canceled) {
-          setFastCapHighlightedHtml('')
-        }
-      } finally {
-        if (!canceled) {
-          setIsHighlightingFastCap(false)
-        }
-      }
-    })()
-
-    return () => {
-      canceled = true
-    }
-  }, [fastCapExportState.content, fastCapExportState.status])
 
   useEffect(() => {
     void fetchEpisode()
@@ -835,76 +747,17 @@ export default function EpisodeDetailPage() {
       </Modal.Backdrop>
 
       {/* FastCap Dialog */}
-      <Modal.Backdrop
+      <FastCapModal
         isOpen={showFastCapDialog}
         onOpenChange={(open) => {
           setShowFastCapDialog(open)
           if (!open) {
             setFastCapExportState({ status: 'idle', content: '' })
-            setFastCapHighlightedHtml('')
-            setIsHighlightingFastCap(false)
           }
         }}
-      >
-        <Modal.Container>
-          <Modal.Dialog>
-            <Modal.CloseTrigger />
-            <Modal.Header>
-              <Modal.Heading>FastCap 配置</Modal.Heading>
-            </Modal.Header>
-            <Modal.Body className="space-y-3">
-              {fastCapExportState.status === 'loading' && (
-                <div className="flex justify-center py-8">
-                  <Spinner />
-                </div>
-              )}
-              {fastCapExportState.status === 'success' && (
-                <div className="relative">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="absolute right-2 top-2 z-10"
-                    onPress={() => void handleCopyFastCap()}
-                  >
-                    <Copy className="size-4" />
-                    复制
-                  </Button>
-                  <div className="max-h-96 overflow-auto rounded border border-border bg-surface p-3 text-sm">
-                    {fastCapHighlightedHtml ? (
-                      <div
-                        className="[&_pre]:m-0! [&_pre]:rounded-none! [&_pre]:p-0! [&_pre]:text-sm! [&_pre]:font-mono!"
-                        // Shiki returns escaped HTML for source tokens.
-                        dangerouslySetInnerHTML={{
-                          __html: fastCapHighlightedHtml,
-                        }}
-                      />
-                    ) : (
-                      <pre className="font-mono whitespace-pre-wrap wrap-break-word">
-                        {`\`\`\`fastcap\n${fastCapExportState.content}\n\`\`\``}
-                      </pre>
-                    )}
-                    {isHighlightingFastCap && (
-                      <div className="mt-2 text-xs text-muted">
-                        正在进行语法高亮...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              {fastCapExportState.status === 'error' && (
-                <p className="text-sm text-danger">
-                  {fastCapExportState.content}
-                </p>
-              )}
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="tertiary" onPress={closeFastCapDialog}>
-                关闭
-              </Button>
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
+        state={fastCapExportState.status}
+        content={fastCapExportState.content}
+      />
 
       {/* Ref Info */}
       {hasRef && (
