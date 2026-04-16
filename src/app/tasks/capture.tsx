@@ -1,7 +1,11 @@
 import {
   Button,
+  ButtonGroup,
   Card,
   Chip,
+  Dropdown,
+  Header,
+  Label,
   Link,
   Modal,
   Separator,
@@ -9,14 +13,18 @@ import {
   Table,
   toast,
 } from '@heroui/react'
-import { useAtomValue } from 'jotai'
-import { Trash2 } from 'lucide-react'
+import { useAtom, useAtomValue } from 'jotai'
+import { ChevronDown, Trash2 } from 'lucide-react'
 import { Duration } from 'luxon'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
 
 import LogEventsPanel from '@/app/events/module/LogEventsPanel'
 import { apiBaseUrlAtom } from '@/atoms/api'
+import {
+  lastUsedDanmakuExportFormatAtom,
+  type DanmakuExportFormat,
+} from '@/atoms/groups/export'
 import { usersAtom, usersAutoRefreshAtom } from '@/atoms/users'
 import { RequireConnection } from '@/components/RequireConnection'
 
@@ -40,6 +48,74 @@ type ClipInfo = {
 type DanmakuStats = {
   count: number
 }
+
+type DanmakuExportOption = {
+  format: DanmakuExportFormat
+  label: string
+  fileExt: string
+  group: 'danuni' | 'bili' | 'other'
+}
+
+type DanmakuExportSource = {
+  key: 'normal' | 'up'
+  label: string
+  up: boolean
+  count: number
+}
+
+const DANMAKU_EXPORT_OPTIONS: DanmakuExportOption[] = [
+  {
+    format: 'danuni.json',
+    label: 'DanUni JSON',
+    fileExt: 'danuni.json',
+    group: 'danuni',
+  },
+  {
+    format: 'danuni.min.json',
+    label: 'DanUni Min JSON',
+    fileExt: 'danuni.min.json',
+    group: 'danuni',
+  },
+  {
+    format: 'danuni.binpb',
+    label: 'DanUni BinPB',
+    fileExt: 'danuni.binpb',
+    group: 'danuni',
+  },
+  {
+    format: 'bili.xml',
+    label: 'Bili XML',
+    fileExt: 'bili.xml',
+    group: 'bili',
+  },
+  {
+    format: 'dplayer.json',
+    label: 'DPlayer JSON',
+    fileExt: 'dplayer.json',
+    group: 'other',
+  },
+  {
+    format: 'artplayer.json',
+    label: 'Artplayer JSON',
+    fileExt: 'artplayer.json',
+    group: 'other',
+  },
+  {
+    format: 'ddplay.json',
+    label: 'DDPlay JSON',
+    fileExt: 'ddplay.json',
+    group: 'other',
+  },
+]
+
+const DANMAKU_EXPORT_GROUPS: Array<{
+  key: DanmakuExportOption['group']
+  label: string
+}> = [
+  { key: 'danuni', label: 'DanUni' },
+  { key: 'bili', label: 'bili' },
+  { key: 'other', label: '其它' },
+]
 
 type CaptureDanmakuStats = {
   count: number
@@ -158,7 +234,12 @@ export default function CaptureDetailPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
+  const [exportingKey, setExportingKey] = useState<string | null>(null)
   const [isLoadingDanmaku, setIsLoadingDanmaku] = useState(false)
+  const [lastUsedFormat, setLastUsedFormat] = useAtom(
+    lastUsedDanmakuExportFormatAtom,
+  )
   const [fetchTasks, setFetchTasks] = useState<FetchTask[]>([])
   const [isFetchTaskToggling, setIsFetchTaskToggling] = useState<
     Record<string, boolean>
@@ -334,6 +415,42 @@ export default function CaptureDetailPage() {
     }
   }
 
+  const handleExportDanmaku = async (
+    option: DanmakuExportOption,
+    source: DanmakuExportSource,
+  ) => {
+    if (!cid) return
+    const exportKey = `${source.key}:${option.format}`
+    setLastUsedFormat(option.format)
+    setExportingKey(exportKey)
+    try {
+      const exportUrl = `${apiBaseUrl}/api/tasks/captures/${cid}/danmaku/${option.format}${source.up ? '?up=true' : ''}`
+      const response = await fetch(exportUrl)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+
+      const fileName = `${cid}${source.up ? '_up' : ''}.${option.fileExt}`
+
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = fileName
+      anchor.rel = 'noopener'
+      anchor.style.display = 'none'
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+
+      toast.success(`已导出 ${source.label} - ${option.label}`)
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : '未知错误'
+      toast.danger(`导出失败：${errorMsg}`)
+    } finally {
+      setExportingKey(null)
+    }
+  }
+
   const handleToggleFetchTask = async (type: FetchTask['type']) => {
     if (!cid) return
 
@@ -422,6 +539,21 @@ export default function CaptureDetailPage() {
     return <div>无效的 CID</div>
   }
 
+  const exportSources: DanmakuExportSource[] = [
+    {
+      key: 'normal',
+      label: '标准接口',
+      up: false,
+      count: danmakuStats?.count ?? 0,
+    },
+    {
+      key: 'up',
+      label: '创作中心',
+      up: true,
+      count: danmakuStats?.upCount ?? 0,
+    },
+  ]
+
   return (
     <RequireConnection>
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -499,7 +631,18 @@ export default function CaptureDetailPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="tertiary"
+                    isDisabled={
+                      isLoading ||
+                      (danmakuStats?.count ?? 0) + (danmakuStats?.upCount ?? 0) ===
+                        0
+                    }
+                    onPress={() => setShowExportDialog(true)}
+                  >
+                    导出弹幕
+                  </Button>
                   <Button
                     variant="danger"
                     isPending={isDeleting}
@@ -513,6 +656,124 @@ export default function CaptureDetailPage() {
             )}
           </Card.Content>
         </Card>
+
+        {/* Export Danmaku Dialog */}
+        <Modal.Backdrop
+          isOpen={showExportDialog}
+          onOpenChange={setShowExportDialog}
+        >
+          <Modal.Container>
+            <Modal.Dialog>
+              <Modal.CloseTrigger />
+              <Modal.Header>
+                <Modal.Heading>导出弹幕</Modal.Heading>
+              </Modal.Header>
+              <Modal.Body>
+                <p className="mb-3 text-sm text-muted">选择导出格式</p>
+                <div className="space-y-4">
+                  {exportSources.map((source) => (
+                    <div
+                      key={source.key}
+                      className="rounded border border-border p-3"
+                    >
+                      <div className="mb-2 text-sm font-medium">
+                        {source.label}
+                        <span className="ml-2 text-xs text-muted">
+                          ({source.count})
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        {(() => {
+                          const lastUsedOption =
+                            DANMAKU_EXPORT_OPTIONS.find(
+                              (option) => option.format === lastUsedFormat,
+                            ) ?? DANMAKU_EXPORT_OPTIONS[0]
+                          const lastUsedKey = `${source.key}:${lastUsedOption.format}`
+
+                          return (
+                            <ButtonGroup
+                              fullWidth
+                              isDisabled={
+                                exportingKey !== null || source.count === 0
+                              }
+                            >
+                              <Button
+                                className="flex-1"
+                                isPending={exportingKey === lastUsedKey}
+                                onPress={() =>
+                                  handleExportDanmaku(lastUsedOption, source)
+                                }
+                              >
+                                导出 {lastUsedOption.label}
+                              </Button>
+
+                              <Dropdown>
+                                <Button
+                                  isIconOnly
+                                  aria-label={`选择${source.label}导出格式`}
+                                  isDisabled={
+                                    exportingKey !== null || source.count === 0
+                                  }
+                                >
+                                  <ButtonGroup.Separator />
+                                  <ChevronDown />
+                                </Button>
+                                <Dropdown.Popover>
+                                  <Dropdown.Menu
+                                    selectionMode="single"
+                                    disallowEmptySelection
+                                    selectedKeys={[lastUsedFormat]}
+                                    onAction={(key) => {
+                                      const selectedOption =
+                                        DANMAKU_EXPORT_OPTIONS.find(
+                                          (option) => option.format === key,
+                                        )
+                                      if (!selectedOption) return
+                                      handleExportDanmaku(selectedOption, source)
+                                    }}
+                                  >
+                                    {DANMAKU_EXPORT_GROUPS.map((group) => (
+                                      <Dropdown.Section
+                                        key={`${source.key}-${group.key}`}
+                                      >
+                                        <Header>{group.label}</Header>
+                                        {DANMAKU_EXPORT_OPTIONS.filter(
+                                          (option) => option.group === group.key,
+                                        ).map((option) => (
+                                          <Dropdown.Item
+                                            key={option.format}
+                                            id={option.format}
+                                            textValue={option.label}
+                                          >
+                                            <Label>{option.label}</Label>
+                                            <Dropdown.ItemIndicator />
+                                          </Dropdown.Item>
+                                        ))}
+                                      </Dropdown.Section>
+                                    ))}
+                                  </Dropdown.Menu>
+                                </Dropdown.Popover>
+                              </Dropdown>
+                            </ButtonGroup>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button
+                  variant="tertiary"
+                  isDisabled={exportingKey !== null}
+                  onPress={() => setShowExportDialog(false)}
+                >
+                  关闭
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
 
         {/* Clips Card */}
         <Card className="mb-6 p-6">
