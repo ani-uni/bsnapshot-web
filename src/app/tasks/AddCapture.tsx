@@ -23,11 +23,14 @@ import {
   useFilter,
 } from '@heroui/react'
 import { fromAbsolute } from '@internationalized/date'
-import { useAtom } from 'jotai'
+import type { PrimitiveAtom } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
 import { Plus, Trash2 } from 'lucide-react'
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 
 import {
+  addCaptureAllClipsHaveEpisodeAtom,
+  addCaptureClipBindingCountAtom,
   addCaptureCreationProgressAtom,
   addCaptureEpisodeSearchAtom,
   addCaptureEpisodeTreeAtom,
@@ -44,12 +47,14 @@ import {
   addCaptureIsFastCapModalOpenAtom,
   addCaptureIsFetchingPregenAtom,
   addCapturePregenEditAtom,
+  addCapturePregenPageAtomsAtom,
 } from '@/atoms/tasks/addCapture'
 import FastCapModal from '@/components/FastCapModal'
 
 import { ClipTimeInput } from './ClipTimeInput'
 import type {
   EpisodeTreeSection,
+  PageEdit,
   PregenEdit,
   PregenResponse,
   SeasonEpisodeItem,
@@ -84,11 +89,264 @@ function buildPregenEdit(data: PregenResponse): PregenEdit {
                   string?,
                 ],
             )
-          : [[0, page.duration, 0]],
+          : [],
       }
     }),
   }
 }
+
+const AddCapturePageItem = memo(function AddCapturePageItem({
+  pageAtom,
+  idType,
+  isChecked,
+  contains,
+  episodeSearch,
+  setEpisodeSearch,
+  episodeTree,
+  ensureEpisodeTree,
+}: {
+  pageAtom: PrimitiveAtom<PageEdit>
+  idType: 'auto' | 'cid'
+  isChecked: boolean
+  contains: (a: string, b: string) => boolean
+  episodeSearch: string
+  setEpisodeSearch: (value: string) => void
+  episodeTree: EpisodeTreeSection[]
+  ensureEpisodeTree: () => void
+}) {
+  const [page, setPage] = useAtom(pageAtom)
+
+  const handleDurationChange = useCallback(
+    (newDuration: number) => {
+      setPage((prev) => ({
+        ...prev,
+        duration: newDuration,
+        clips: [[0, newDuration, 0]],
+      }))
+    },
+    [setPage],
+  )
+
+  const handleClipChange = useCallback(
+    (clipIndex: number, field: 0 | 1, value: number) => {
+      setPage((prev) => {
+        const newClips = [...prev.clips]
+        const newClip = [...newClips[clipIndex]] as [number, number, number, string?]
+        newClip[field] = value
+        newClips[clipIndex] = newClip
+        return { ...prev, clips: newClips }
+      })
+    },
+    [setPage],
+  )
+
+  const handleClipEpOffsetChange = useCallback(
+    (clipIndex: number, value: number) => {
+      setPage((prev) => {
+        const newClips = [...prev.clips]
+        const newClip = [...newClips[clipIndex]] as [number, number, number, string?]
+        newClip[2] = value
+        newClips[clipIndex] = newClip
+        return { ...prev, clips: newClips }
+      })
+    },
+    [setPage],
+  )
+
+  const handleAddClip = useCallback(() => {
+    setPage((prev) => {
+      const lastEnd = prev.clips.length > 0 ? prev.clips[prev.clips.length - 1][1] : 0
+      return {
+        ...prev,
+        clips: [...prev.clips, [lastEnd, prev.duration, 0]],
+      }
+    })
+  }, [setPage])
+
+  const handleRemoveClip = useCallback(
+    (clipIndex: number) => {
+      setPage((prev) => ({
+        ...prev,
+        clips: prev.clips.filter((_, i) => i !== clipIndex),
+      }))
+    },
+    [setPage],
+  )
+
+  const handleClipEpisodeChange = useCallback(
+    (clipIndex: number, episodeId: string | null) => {
+      setPage((prev) => {
+        const newClips = [...prev.clips]
+        const clip = newClips[clipIndex]
+        const entry: [number, number, number, string?] = [clip[0], clip[1], clip[2]]
+        if (episodeId) {
+          entry.push(episodeId)
+        }
+        newClips[clipIndex] = entry
+        return { ...prev, clips: newClips }
+      })
+    },
+    [setPage],
+  )
+
+  return (
+    <Accordion.Item id={String(page.cid)}>
+      <Accordion.Heading>
+        <Accordion.Trigger>
+          P{page.page} - {page.part}
+          <Accordion.Indicator />
+        </Accordion.Trigger>
+      </Accordion.Heading>
+      <Accordion.Panel>
+        <div className="space-y-3 p-4">
+          <div className="font-mono text-xs text-muted">cid: {page.cid}</div>
+
+          <NumberField
+            value={page.duration}
+            onChange={(v) => handleDurationChange(v)}
+            className="w-full max-w-64"
+            variant="secondary"
+            isDisabled={idType === 'auto' || isChecked}
+          >
+            <Label>时长 (秒)</Label>
+            <NumberField.Group>
+              <NumberField.DecrementButton />
+              <NumberField.Input />
+              <NumberField.IncrementButton />
+            </NumberField.Group>
+          </NumberField>
+
+          <div>
+            <div className="mb-2 text-sm font-medium">片段</div>
+            <div className="space-y-2">
+              {page.clips.map((clip, clipIndex) => (
+                <div
+                  key={`${clip[0]}-${clip[1]}-${clipIndex}`}
+                  className="relative space-y-2 rounded border border-border p-2 pt-8"
+                >
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="absolute right-1 top-1"
+                    isDisabled={isChecked}
+                    onPress={() => handleRemoveClip(clipIndex)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                  <Label className="text-sm text-muted">抓取视频起止时间</Label>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <ClipTimeInput
+                      value={clip[0]}
+                      onChange={(v) => handleClipChange(clipIndex, 0, v)}
+                      isDisabled={isChecked}
+                    />
+                    <span className="text-sm text-muted">至</span>
+                    <ClipTimeInput
+                      value={clip[1]}
+                      onChange={(v) => handleClipChange(clipIndex, 1, v)}
+                      isDisabled={isChecked}
+                    />
+                  </div>
+                  <Label className="text-sm text-muted">实际剧集进度偏移</Label>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <ClipTimeInput
+                      value={clip[2]}
+                      onChange={(v) => handleClipEpOffsetChange(clipIndex, v)}
+                      isDisabled={isChecked}
+                    />
+                    <span className="text-sm text-muted">至</span>
+                    <ClipTimeInput
+                      value={clip[2] + (clip[1] - clip[0])}
+                      onChange={() => {}}
+                      isDisabled
+                    />
+                  </div>
+                  <Label className="text-sm text-muted">归属剧集</Label>
+                  <Autocomplete
+                    className="w-full sm:w-64"
+                    selectionMode="single"
+                    value={clip[3] ?? null}
+                    onChange={(value) => {
+                      const episodeId = value && value !== '' ? String(value) : null
+                      handleClipEpisodeChange(clipIndex, episodeId)
+                      if (episodeId) {
+                        const section = episodeTree.find((s) =>
+                          s.episodes.some((ep) => ep.id === episodeId),
+                        )
+                        setEpisodeSearch(section?.season?.title || '')
+                      }
+                    }}
+                    onOpenChange={(isOpen) => {
+                      if (isOpen) {
+                        ensureEpisodeTree()
+                      }
+                    }}
+                    variant="secondary"
+                    isDisabled={isChecked}
+                  >
+                    <Label className="sr-only">Episode</Label>
+                    <Autocomplete.Trigger isDisabled={isChecked}>
+                      <Autocomplete.Value />
+                      <Autocomplete.Indicator />
+                    </Autocomplete.Trigger>
+                    <Autocomplete.Popover>
+                      <Autocomplete.Filter
+                        filter={contains}
+                        inputValue={episodeSearch}
+                        onInputChange={setEpisodeSearch}
+                      >
+                        <SearchField name="search" variant="secondary">
+                          <SearchField.Group>
+                            <SearchField.SearchIcon />
+                            <SearchField.Input placeholder="搜索剧集..." />
+                            <SearchField.ClearButton />
+                          </SearchField.Group>
+                        </SearchField>
+                        <ListBox>
+                          <ListBox.Item id="" textValue="无">
+                            无
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                          {episodeTree.map((section) => (
+                            <ListBox.Section key={section.season?.id ?? '__default'}>
+                              <Header>
+                                {section.season ? section.season.title || '未命名' : '无归属'}
+                              </Header>
+                              {section.episodes.map((ep) => (
+                                <ListBox.Item
+                                  key={ep.id}
+                                  id={ep.id}
+                                  textValue={`${section.season ? section.season.title || '未命名' : '无归属'} ${episodeLabel(ep)}`}
+                                >
+                                  {episodeLabel(ep)}
+                                  <ListBox.ItemIndicator />
+                                </ListBox.Item>
+                              ))}
+                            </ListBox.Section>
+                          ))}
+                        </ListBox>
+                      </Autocomplete.Filter>
+                    </Autocomplete.Popover>
+                  </Autocomplete>
+                </div>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              isDisabled={isChecked}
+              onPress={handleAddClip}
+            >
+              <Plus />
+              添加片段
+            </Button>
+          </div>
+        </div>
+      </Accordion.Panel>
+    </Accordion.Item>
+  )
+})
 
 export default function AddCapture({
   apiBaseUrl,
@@ -109,6 +367,11 @@ export default function AddCapture({
     addCaptureIsFetchingPregenAtom,
   )
   const [pregenEdit, setPregenEdit] = useAtom(addCapturePregenEditAtom)
+  const pageAtoms = useAtomValue(addCapturePregenPageAtomsAtom)
+  const allClipsHaveEpisodeByPages = useAtomValue(
+    addCaptureAllClipsHaveEpisodeAtom,
+  )
+  const clipBindingCount = useAtomValue(addCaptureClipBindingCountAtom)
   const [isCreatingCaptures, setIsCreatingCaptures] = useAtom(
     addCaptureIsCreatingCapturesAtom,
   )
@@ -243,116 +506,6 @@ export default function AddCapture({
   const handleToggleAdvancedMode = () => {
     setIsAdvancedMode((prev) => !prev)
     setFastcapManual('')
-  }
-
-  const handleDurationChange = (pageIndex: number, newDuration: number) => {
-    setPregenEdit((prev) => {
-      if (!prev) return prev
-      const newPages = [...prev.pages]
-      newPages[pageIndex] = {
-        ...newPages[pageIndex],
-        duration: newDuration,
-        clips: [[0, newDuration, 0]],
-      }
-      return { ...prev, pages: newPages }
-    })
-  }
-
-  const handleClipChange = (
-    pageIndex: number,
-    clipIndex: number,
-    field: 0 | 1,
-    value: number,
-  ) => {
-    setPregenEdit((prev) => {
-      if (!prev) return prev
-      const newPages = [...prev.pages]
-      const newClips = [...newPages[pageIndex].clips]
-      const newClip = [...newClips[clipIndex]] as [
-        number,
-        number,
-        number,
-        string?,
-      ]
-      newClip[field] = value
-      newClips[clipIndex] = newClip
-      newPages[pageIndex] = { ...newPages[pageIndex], clips: newClips }
-      return { ...prev, pages: newPages }
-    })
-  }
-
-  const handleClipEpOffsetChange = (
-    pageIndex: number,
-    clipIndex: number,
-    value: number,
-  ) => {
-    setPregenEdit((prev) => {
-      if (!prev) return prev
-      const newPages = [...prev.pages]
-      const newClips = [...newPages[pageIndex].clips]
-      const newClip = [...newClips[clipIndex]] as [
-        number,
-        number,
-        number,
-        string?,
-      ]
-      newClip[2] = value
-      newClips[clipIndex] = newClip
-      newPages[pageIndex] = { ...newPages[pageIndex], clips: newClips }
-      return { ...prev, pages: newPages }
-    })
-  }
-
-  const handleAddClip = (pageIndex: number) => {
-    setPregenEdit((prev) => {
-      if (!prev) return prev
-      const newPages = [...prev.pages]
-      const page = newPages[pageIndex]
-      const lastEnd =
-        page.clips.length > 0 ? page.clips[page.clips.length - 1][1] : 0
-      newPages[pageIndex] = {
-        ...page,
-        clips: [...page.clips, [lastEnd, page.duration, 0]],
-      }
-      return { ...prev, pages: newPages }
-    })
-  }
-
-  const handleRemoveClip = (pageIndex: number, clipIndex: number) => {
-    setPregenEdit((prev) => {
-      if (!prev) return prev
-      const newPages = [...prev.pages]
-      const page = newPages[pageIndex]
-      newPages[pageIndex] = {
-        ...page,
-        clips: page.clips.filter((_, i) => i !== clipIndex),
-      }
-      return { ...prev, pages: newPages }
-    })
-  }
-
-  const handleClipEpisodeChange = (
-    pageIndex: number,
-    clipIndex: number,
-    episodeId: string | null,
-  ) => {
-    setPregenEdit((prev) => {
-      if (!prev) return prev
-      const newPages = [...prev.pages]
-      const newClips = [...newPages[pageIndex].clips]
-      const clip = newClips[clipIndex]
-      const entry: [number, number, number, string?] = [
-        clip[0],
-        clip[1],
-        clip[2],
-      ]
-      if (episodeId) {
-        entry.push(episodeId)
-      }
-      newClips[clipIndex] = entry
-      newPages[pageIndex] = { ...newPages[pageIndex], clips: newClips }
-      return { ...prev, pages: newPages }
-    })
   }
 
   const handleCheck = () => {
@@ -490,11 +643,7 @@ export default function AddCapture({
     }
   }
 
-  const allClipsHaveEpisode = pregenEdit
-    ? pregenEdit.pages.every(
-        (page) => page.clips.length === 0 || page.clips.every((c) => !!c[3]),
-      )
-    : false
+  const allClipsHaveEpisode = !!pregenEdit && allClipsHaveEpisodeByPages
 
   return (
     <Card className="mb-6 p-6">
@@ -726,200 +875,18 @@ export default function AddCapture({
               variant="surface"
               className="border"
             >
-              {pregenEdit.pages.map((page, pageIndex) => (
-                <Accordion.Item key={page.cid} id={String(page.cid)}>
-                  <Accordion.Heading>
-                    <Accordion.Trigger>
-                      P{page.page} - {page.part}
-                      <Accordion.Indicator />
-                    </Accordion.Trigger>
-                  </Accordion.Heading>
-                  <Accordion.Panel>
-                    <div className="space-y-3 p-4">
-                      <div className="font-mono text-xs text-muted">
-                        cid: {page.cid}
-                      </div>
-
-                      <NumberField
-                        value={page.duration}
-                        onChange={(v) => handleDurationChange(pageIndex, v)}
-                        className="w-full max-w-64"
-                        variant="secondary"
-                        isDisabled={idType === 'auto' || isChecked}
-                      >
-                        <Label>时长 (秒)</Label>
-                        <NumberField.Group>
-                          <NumberField.DecrementButton />
-                          <NumberField.Input />
-                          <NumberField.IncrementButton />
-                        </NumberField.Group>
-                      </NumberField>
-
-                      <div>
-                        <div className="mb-2 text-sm font-medium">片段</div>
-                        <div className="space-y-2">
-                          {page.clips.map((clip, clipIndex) => (
-                            <div
-                              key={`${clip[0]}-${clip[1]}-${clipIndex}`}
-                              className="relative space-y-2 rounded border border-border p-2 pt-8"
-                            >
-                              <Button
-                                variant="danger"
-                                size="sm"
-                                className="absolute right-1 top-1"
-                                isDisabled={isChecked}
-                                onPress={() =>
-                                  handleRemoveClip(pageIndex, clipIndex)
-                                }
-                              >
-                                <Trash2 className="size-4" />
-                              </Button>
-                              <Label className="text-sm text-muted">
-                                抓取视频起止时间
-                              </Label>
-                              <div className="flex flex-wrap items-end gap-2">
-                                <ClipTimeInput
-                                  value={clip[0]}
-                                  onChange={(v) =>
-                                    handleClipChange(pageIndex, clipIndex, 0, v)
-                                  }
-                                  isDisabled={isChecked}
-                                />
-                                <span className="text-sm text-muted">至</span>
-                                <ClipTimeInput
-                                  value={clip[1]}
-                                  onChange={(v) =>
-                                    handleClipChange(pageIndex, clipIndex, 1, v)
-                                  }
-                                  isDisabled={isChecked}
-                                />
-                              </div>
-                              <Label className="text-sm text-muted">
-                                实际剧集进度偏移
-                              </Label>
-                              <div className="flex flex-wrap items-end gap-2">
-                                <ClipTimeInput
-                                  value={clip[2]}
-                                  onChange={(v) =>
-                                    handleClipEpOffsetChange(
-                                      pageIndex,
-                                      clipIndex,
-                                      v,
-                                    )
-                                  }
-                                  isDisabled={isChecked}
-                                />
-                                <span className="text-sm text-muted">至</span>
-                                <ClipTimeInput
-                                  value={clip[2] + (clip[1] - clip[0])}
-                                  onChange={() => {}}
-                                  isDisabled
-                                />
-                              </div>
-                              <Label className="text-sm text-muted">
-                                归属剧集
-                              </Label>
-                              <Autocomplete
-                                className="w-full sm:w-64"
-                                selectionMode="single"
-                                value={clip[3] ?? null}
-                                onChange={(value) => {
-                                  handleClipEpisodeChange(
-                                    pageIndex,
-                                    clipIndex,
-                                    value && value !== ''
-                                      ? String(value)
-                                      : null,
-                                  )
-                                  if (value && value !== '') {
-                                    const section = episodeTree.find((s) =>
-                                      s.episodes.some(
-                                        (ep) => ep.id === String(value),
-                                      ),
-                                    )
-                                    setEpisodeSearch(
-                                      section?.season?.title || '',
-                                    )
-                                  }
-                                }}
-                                onOpenChange={(isOpen) => {
-                                  if (isOpen) {
-                                    ensureEpisodeTree()
-                                  }
-                                }}
-                                variant="secondary"
-                                isDisabled={isChecked}
-                              >
-                                <Label className="sr-only">Episode</Label>
-                                <Autocomplete.Trigger isDisabled={isChecked}>
-                                  <Autocomplete.Value />
-                                  <Autocomplete.Indicator />
-                                </Autocomplete.Trigger>
-                                <Autocomplete.Popover>
-                                  <Autocomplete.Filter
-                                    filter={contains}
-                                    inputValue={episodeSearch}
-                                    onInputChange={setEpisodeSearch}
-                                  >
-                                    <SearchField
-                                      name="search"
-                                      variant="secondary"
-                                    >
-                                      <SearchField.Group>
-                                        <SearchField.SearchIcon />
-                                        <SearchField.Input placeholder="搜索剧集..." />
-                                        <SearchField.ClearButton />
-                                      </SearchField.Group>
-                                    </SearchField>
-                                    <ListBox>
-                                      <ListBox.Item id="" textValue="无">
-                                        无
-                                        <ListBox.ItemIndicator />
-                                      </ListBox.Item>
-                                      {episodeTree.map((section) => (
-                                        <ListBox.Section
-                                          key={
-                                            section.season?.id ?? '__default'
-                                          }
-                                        >
-                                          <Header>
-                                            {section.season
-                                              ? section.season.title || '未命名'
-                                              : '无归属'}
-                                          </Header>
-                                          {section.episodes.map((ep) => (
-                                            <ListBox.Item
-                                              key={ep.id}
-                                              id={ep.id}
-                                              textValue={`${section.season ? section.season.title || '未命名' : '无归属'} ${episodeLabel(ep)}`}
-                                            >
-                                              {episodeLabel(ep)}
-                                              <ListBox.ItemIndicator />
-                                            </ListBox.Item>
-                                          ))}
-                                        </ListBox.Section>
-                                      ))}
-                                    </ListBox>
-                                  </Autocomplete.Filter>
-                                </Autocomplete.Popover>
-                              </Autocomplete>
-                            </div>
-                          ))}
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          isDisabled={isChecked}
-                          onPress={() => handleAddClip(pageIndex)}
-                        >
-                          <Plus />
-                          添加片段
-                        </Button>
-                      </div>
-                    </div>
-                  </Accordion.Panel>
-                </Accordion.Item>
+              {pageAtoms.map((pageAtom, index) => (
+                <AddCapturePageItem
+                  key={index}
+                  pageAtom={pageAtom}
+                  idType={idType}
+                  isChecked={isChecked}
+                  contains={contains}
+                  episodeSearch={episodeSearch}
+                  setEpisodeSearch={setEpisodeSearch}
+                  episodeTree={episodeTree}
+                  ensureEpisodeTree={ensureEpisodeTree}
+                />
               ))}
             </Accordion>
 
@@ -958,13 +925,7 @@ export default function AddCapture({
                 {isChecked ? '创建采集' : '检查'}
                 {pregenEdit && (
                   <span className="ml-1">
-                    (
-                    {
-                      pregenEdit.pages.filter((p) => p.clips.some((c) => c[3]))
-                        .length
-                    }
-                    /{pregenEdit.pages.filter((p) => p.clips.length > 0).length}
-                    )
+                    ({clipBindingCount.bound}/{clipBindingCount.total})
                   </span>
                 )}
               </Button>
