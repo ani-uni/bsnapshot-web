@@ -29,6 +29,8 @@ import EditableText from '@/components/EditableText'
 import FastCapModal, { type FastCapModalState } from '@/components/FastCapModal'
 import { TMDB_IMAGE_PREFIX } from '@/constants/tmdb'
 
+import { formatSn } from './sn'
+
 type EpisodeDetail = {
   id: string
   title: string | null
@@ -228,9 +230,8 @@ function displayTitle(title: string | null | undefined) {
 
 function episodeLabel(episode: EpisodeDetail) {
   if (episode.sn !== null) {
-    return episode.title
-      ? `第 ${episode.sn} 集 - ${episode.title}`
-      : `第 ${episode.sn} 集`
+    const snDisplay = formatSn(episode.sn)
+    return episode.title ? `${snDisplay} - ${episode.title}` : snDisplay
   }
   return displayTitle(episode.title)
 }
@@ -548,7 +549,7 @@ export default function EpisodeDetailPage() {
               {episode?.sn != null && (
                 <div>
                   <div className="mb-2 text-sm text-muted">集数</div>
-                  <div className="text-sm">第 {episode.sn} 集</div>
+                  <div className="text-sm">{formatSn(episode.sn)}</div>
                 </div>
               )}
 

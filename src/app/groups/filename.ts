@@ -9,6 +9,8 @@
  * - {fmt}: 导出格式后缀
  */
 
+import { formatSnForTemplate } from './sn'
+
 type EpisodeData = {
   id: string
   sn: number | null
@@ -28,7 +30,7 @@ export function renderFilenameTemplate(
 ): string {
   return template
     .replaceAll('{epid}', episode.id)
-    .replaceAll('{sn}', episode.sn !== null ? String(episode.sn) : '')
+    .replaceAll('{sn}', formatSnForTemplate(episode.sn))
     .replaceAll('{ssid}', season.id)
     .replaceAll('{ep_title}', episode.title ?? '未命名')
     .replaceAll('{ss_title}', season.title ?? '未命名')

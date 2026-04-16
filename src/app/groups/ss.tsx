@@ -23,6 +23,8 @@ import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
 import EditableText from '@/components/EditableText'
 import { TMDB_IMAGE_PREFIX } from '@/constants/tmdb'
 
+import { buildSnFromBgmtvEpisode, formatSn, bgmtvEpisodeComparator } from './sn'
+
 type SeasonDetail = {
   id: string
   title: string | null
@@ -558,18 +560,33 @@ export default function SeasonDetailPage() {
 
     setIsCreatingFromBgmtv(true)
     try {
-      for (const key of selectedBgmtvEpisodeKeys) {
-        const sn = Number(key)
-        const episode = await handleCreateEpisode(sn)
-        if (!episode) continue
-        const bgmtvEpisode = bgmtvEpisodes.find((ep) => ep.sort === sn)
-        const title = bgmtvEpisode?.name_cn || bgmtvEpisode?.name
-        if (bgmtvEpisode) {
-          await handlePatchEpisodeTitle(episode.id, sn, title, {
-            src: 'bgmtv',
-            episode_id: bgmtvEpisode.id,
-          })
+      for (const episodeId of selectedBgmtvEpisodeKeys) {
+        // 按 episodeId 找到对应的 BGMTV 剧集
+        const bgmtvEpisode = bgmtvEpisodes.find((ep) => ep.id === episodeId)
+        if (!bgmtvEpisode) {
+          toast.warning(`未找到 BGMTV 剧集 ${episodeId}`)
+          continue
         }
+
+        // 计算 sn
+        const sn = buildSnFromBgmtvEpisode(bgmtvEpisode)
+        if (sn === null) {
+          toast.warning(
+            `无法为 ${bgmtvEpisode.name_cn || bgmtvEpisode.name} 计算集数（ep 字段缺失）`,
+          )
+          continue
+        }
+
+        // 创建剧集
+        const createdEpisode = await handleCreateEpisode(sn)
+        if (!createdEpisode) continue
+
+        // 绑定 BGMTV 参考
+        const title = bgmtvEpisode.name_cn || bgmtvEpisode.name
+        await handlePatchEpisodeTitle(createdEpisode.id, sn, title, {
+          src: 'bgmtv',
+          episode_id: bgmtvEpisode.id,
+        })
       }
       void fetchEpisodeList()
       toast.success('批量创建成功')
@@ -616,9 +633,14 @@ export default function SeasonDetailPage() {
   const availableTmdbEpisodes = tmdbEpisodes.filter(
     (ep) => !existingSnSet.has(ep.episode_number),
   )
-  const availableBgmtvEpisodes = bgmtvEpisodes.filter(
-    (ep) => !existingSnSet.has(ep.sort),
-  )
+  // BGMTV 去重：按计算后的 sn 进行，而不是 sort
+  const availableBgmtvEpisodes = bgmtvEpisodes
+    .toSorted(bgmtvEpisodeComparator)
+    .filter((ep) => {
+      const calculatedSn = buildSnFromBgmtvEpisode(ep)
+      // 若 sn 无法计算，过滤掉；若已存在，也过滤掉
+      return calculatedSn !== null && !existingSnSet.has(calculatedSn)
+    })
 
   return (
     <div className="space-y-4">
@@ -799,9 +821,8 @@ export default function SeasonDetailPage() {
                     <Accordion.Trigger
                       onPress={() => navigate(`/groups/ep/${episode.id}`)}
                     >
-                      {!Number.isNaN(episode.sn)
-                        ? `第 ${episode.sn} 集 - `
-                        : ''}
+                      {formatSn(episode.sn)}
+                      {formatSn(episode.sn) && ' - '}
                       {displayTitle(episode.title)}
                       <Accordion.Indicator>
                         <ChevronRight />
@@ -1033,9 +1054,7 @@ export default function SeasonDetailPage() {
                       onSelectionChange={(keys) => {
                         if (keys === 'all') {
                           setSelectedBgmtvEpisodeKeys(
-                            new Set(
-                              availableBgmtvEpisodes.map((ep) => ep.sort),
-                            ),
+                            new Set(availableBgmtvEpisodes.map((ep) => ep.id)),
                           )
                         } else {
                           setSelectedBgmtvEpisodeKeys(
@@ -1044,32 +1063,38 @@ export default function SeasonDetailPage() {
                         }
                       }}
                     >
-                      {availableBgmtvEpisodes.map((episode) => (
-                        <ListBox.Item
-                          key={episode.sort}
-                          id={episode.sort}
-                          textValue={episode.name_cn || episode.name}
-                        >
-                          <div className="flex flex-col gap-1">
-                            <div className="text-sm font-medium">
-                              第 {episode.sort} 集 -{' '}
-                              {episode.name_cn || episode.name}
-                            </div>
-                            {episode.name_cn &&
-                              episode.name !== episode.name_cn && (
-                                <div className="text-xs text-fg/60">
-                                  {episode.name}
+                      {availableBgmtvEpisodes.map((episode) => {
+                        const calculatedSn = buildSnFromBgmtvEpisode(episode)
+                        const snDisplay =
+                          calculatedSn !== null
+                            ? formatSn(calculatedSn, episode.type)
+                            : '无数据'
+                        return (
+                          <ListBox.Item
+                            key={episode.id}
+                            id={episode.id}
+                            textValue={`${snDisplay} ${episode.name_cn || episode.name}`}
+                          >
+                            <div className="flex flex-col gap-1">
+                              <div className="text-sm font-medium">
+                                {snDisplay} - {episode.name_cn || episode.name}
+                              </div>
+                              {episode.name_cn &&
+                                episode.name !== episode.name_cn && (
+                                  <div className="text-xs text-fg/60">
+                                    {episode.name}
+                                  </div>
+                                )}
+                              {episode.desc && (
+                                <div className="line-clamp-2 text-xs text-fg/70">
+                                  {episode.desc}
                                 </div>
                               )}
-                            {episode.desc && (
-                              <div className="line-clamp-2 text-xs text-fg/70">
-                                {episode.desc}
-                              </div>
-                            )}
-                          </div>
-                          <ListBox.ItemIndicator />
-                        </ListBox.Item>
-                      ))}
+                            </div>
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        )
+                      })}
                     </ListBox>
                   </div>
                 )}

@@ -1,6 +1,7 @@
 import { Duration } from 'luxon'
 
 import type { SeasonEpisodeItem } from './types'
+import { formatSn } from '@/app/groups/sn'
 
 export function secondsToHms(totalSeconds: number): string {
   return Duration.fromMillis(totalSeconds * 1000).toFormat('hh:mm:ss')
@@ -19,5 +20,9 @@ export function detectIdType(input: string): 'aid' | 'bvid' {
 
 export function episodeLabel(ep: SeasonEpisodeItem): string {
   const title = ep.title || '未命名'
-  return ep.sn != null ? `E${ep.sn} - ${title}` : title
+  if (ep.sn !== null) {
+    const snDisplay = formatSn(ep.sn)
+    return snDisplay ? `${snDisplay} - ${title}` : title
+  }
+  return title
 }

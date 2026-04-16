@@ -67,7 +67,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "cross-env": "^10.1.0",
-    "electron": "^41.2.0",
+    "electron": "^41.2.1",
     "oxfmt": "^0.45.0",
     "oxlint": "^1.60.0",
     "tailwindcss": "^4.2.2",
