@@ -1,6 +1,8 @@
 import { Card, Chip, Link, Separator, Spinner, Table } from '@heroui/react'
 import { Link as RLink } from 'react-router'
+import { useAtomValue } from 'jotai'
 
+import { lastCreatedCaptureAidAtom } from '@/atoms/tasks/addCapture'
 import type { CaptureItem } from './types'
 
 function formatCaptureDate(dateString: string | null): string {
@@ -43,6 +45,16 @@ export function CaptureList({
   captureList: CaptureItem[]
   isLoading: boolean
 }) {
+  const lastCreatedAid = useAtomValue(lastCreatedCaptureAidAtom)
+
+  // 如果有最后创建的 aid，则将对应的 captures 置顶
+  const sortedCaptureList = lastCreatedAid
+    ? [
+        ...captureList.filter((c) => c.aid === lastCreatedAid),
+        ...captureList.filter((c) => c.aid !== lastCreatedAid),
+      ]
+    : captureList
+
   return (
     <Card className="p-6">
       <Card.Header>
@@ -66,9 +78,16 @@ export function CaptureList({
                   <Table.Column>AID</Table.Column>
                   <Table.Column>视频源状态</Table.Column>
                 </Table.Header>
-                <Table.Body items={captureList}>
+                <Table.Body items={sortedCaptureList}>
                   {(capture) => (
-                    <Table.Row id={capture.cid}>
+                    <Table.Row
+                      id={capture.cid}
+                      className={
+                        lastCreatedAid && capture.aid === lastCreatedAid
+                          ? 'bg-success/10'
+                          : undefined
+                      }
+                    >
                       <Table.Cell>
                         <Link>
                           <RLink to={`/tasks/captures/${capture.cid}`}>

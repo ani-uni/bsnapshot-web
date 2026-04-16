@@ -1,5 +1,5 @@
 import { atom } from 'jotai'
-import { splitAtom } from 'jotai/utils'
+import { splitAtom, atomWithStorage } from 'jotai/utils'
 
 import type { FastCapModalState } from '@/components/FastCapModal'
 import type { PageEdit, PregenEdit } from '@/app/tasks/types'
@@ -80,3 +80,9 @@ export const addCaptureFastCapModalContentAtom = atom('')
 export const addCaptureEpisodeTreeAtom = atom<EpisodeTreeSection[]>([])
 export const addCaptureEpisodeTreeLoadedAtom = atom(false)
 export const addCaptureEpisodeSearchAtom = atom('')
+
+// 存储最后创建的采集对应的 aid，用于高亮显示
+export const lastCreatedCaptureAidAtom = atomWithStorage<string | null>(
+  'lastCreatedCaptureAid',
+  null,
+)

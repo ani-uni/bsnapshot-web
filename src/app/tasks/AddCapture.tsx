@@ -48,6 +48,7 @@ import {
   addCaptureIsFetchingPregenAtom,
   addCapturePregenEditAtom,
   addCapturePregenPageAtomsAtom,
+  lastCreatedCaptureAidAtom,
 } from '@/atoms/tasks/addCapture'
 import FastCapModal from '@/components/FastCapModal'
 
@@ -399,6 +400,7 @@ export default function AddCapture({
   const [episodeSearch, setEpisodeSearch] = useAtom(
     addCaptureEpisodeSearchAtom,
   )
+  const [, setLastCreatedCaptureAid] = useAtom(lastCreatedCaptureAidAtom)
   const { contains } = useFilter({ sensitivity: 'base' })
 
   const fetchEpisodeTree = useCallback(async () => {
@@ -628,6 +630,9 @@ export default function AddCapture({
         }
       }
 
+      // 保存最后创建的采集的 aid
+      setLastCreatedCaptureAid(pregenEdit.aid)
+      
       toast.success('采集创建完成')
       setPregenEdit(null)
       setHasFastcapPreset(false)
