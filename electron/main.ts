@@ -5,7 +5,6 @@ import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, net, protocol, utilityProcess } from 'electron'
 import started from 'electron-squirrel-startup'
 
-import pkg from '../backend/package.json' with { type: 'json' }
 import fpkg from '../package.json' with { type: 'json' }
 
 if (started) app.quit()
@@ -39,26 +38,11 @@ const createWindow = () => {
   win.loadURL('app:bundle')
 }
 const startServer = async () => {
-  const mg: { r: boolean; s: number | string; e: number | string } = {
-    r: false,
-    s: 0,
-    e: 0,
-  }
   const dataPath = path.resolve(app.getPath('userData'), './.data'),
-    dbPath = path.resolve(dataPath, './db/prisma.db'),
-    dbMigrationLockPath = path.resolve(dataPath, './db/prisma.migration-lock')
+    dbPath = path.resolve(dataPath, './db/prisma.db')
   if (!fs.existsSync(dbPath)) {
     fs.mkdirSync(path.dirname(dbPath), { recursive: true })
     fs.writeFileSync(dbPath, '')
-    fs.writeFileSync(dbMigrationLockPath, pkg.version)
-    mg.r = true
-    mg.s = -1
-  } else if (fs.existsSync(dbMigrationLockPath)) {
-    const dbMigrationLock = fs.readFileSync(dbMigrationLockPath, 'utf-8')
-    if (dbMigrationLock < pkg.version) {
-      mg.r = true
-      mg.s = dbMigrationLock
-    }
   }
   serverProcess = utilityProcess.fork(
     path.resolve(getResourcePath(), './build/server/index.mjs'),
@@ -90,37 +74,33 @@ const startServer = async () => {
     console.error(`${COLOR.red}${data.toString()}${COLOR.reset}`)
     console.error(`${COLOR.red}[子进程 stderr] end${COLOR.reset}`)
   })
-  if (mg.r) {
-    await new Promise<void>((resolve, reject) => {
-      let i: NodeJS.Timeout | null = null
-      let retryCount = 0
-      const maxRetries = 10
-      const c = async () => {
-        retryCount += 1
-        try {
-          const res = await fetch('http://localhost:45600/api/db/migrate', {
-            method: 'POST',
-            body: JSON.stringify(mg),
-          })
-          const data = await res.json()
-          if (data.success) {
-            if (i) {
-              clearInterval(i)
-              fs.writeFileSync(dbMigrationLockPath, pkg.version)
-              resolve()
-            }
+  await new Promise<void>((resolve, reject) => {
+    let i: NodeJS.Timeout | null = null
+    let retryCount = 0
+    const maxRetries = 10
+    const c = async () => {
+      retryCount += 1
+      try {
+        const res = await fetch('http://localhost:45600/api/db/migrate', {
+          method: 'POST',
+        })
+        const data = await res.json()
+        if (data.success) {
+          if (i) {
+            clearInterval(i)
+            resolve()
           }
-        } catch {}
-        if (retryCount >= maxRetries) {
-          if (i) clearInterval(i)
-          reject(new Error('数据库迁移失败：重试 10 次后仍未成功'))
         }
+      } catch {}
+      if (retryCount >= maxRetries) {
+        if (i) clearInterval(i)
+        reject(new Error('数据库迁移失败：重试 10 次后仍未成功'))
       }
-      i = setInterval(() => {
-        void c()
-      }, 1000)
-    })
-  }
+    }
+    i = setInterval(() => {
+      void c()
+    }, 1000)
+  })
 }
 
 app
