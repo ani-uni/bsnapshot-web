@@ -1,4 +1,12 @@
-import { Button, Card, Chip, Link, Separator, Spinner, Table } from '@heroui/react'
+import {
+  Button,
+  Card,
+  Chip,
+  Link,
+  Separator,
+  Spinner,
+  Table,
+} from '@heroui/react'
 import { useAtomValue } from 'jotai'
 import { ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
@@ -150,10 +158,12 @@ export function CaptureList({
         )}
       </Table.Cell>
       <Table.Cell>
-        {row.nodeType === 'aid' ? '-' : formatCaptureDate(row.capture?.pub ?? null)}
+        {row.nodeType === 'aid'
+          ? '-'
+          : formatCaptureDate(row.capture?.pub ?? null)}
       </Table.Cell>
       <Table.Cell className="font-mono">
-        {row.nodeType === 'aid' ? row.aid : row.capture?.aid ?? '-'}
+        {row.nodeType === 'aid' ? row.aid : (row.capture?.aid ?? '-')}
       </Table.Cell>
       <Table.Cell>
         {row.nodeType === 'aid' ? (
@@ -162,7 +172,9 @@ export function CaptureList({
           <Chip
             size="sm"
             variant="soft"
-            color={getVideoSourceStatusColor(row.capture?.videoSourceState ?? null)}
+            color={getVideoSourceStatusColor(
+              row.capture?.videoSourceState ?? null,
+            )}
           >
             {getVideoSourceStatusLabel(row.capture?.videoSourceState ?? null)}
           </Chip>

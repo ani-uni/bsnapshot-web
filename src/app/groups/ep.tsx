@@ -441,7 +441,7 @@ export default function EpisodeDetailPage() {
     setExportingKey(exportKey)
     try {
       const exportUrl = `api/episodes/${epid}/danmaku/${option.format}${source.up ? '?up=true' : ''}`
-      const response = await fetch(exportUrl)
+      const response = await api(exportUrl)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const blob = await response.blob()
 
@@ -485,7 +485,7 @@ export default function EpisodeDetailPage() {
     setFastCapExportState({ status: 'loading', content: '' })
 
     try {
-      const response = await fetch(`api/episodes/${epid}/fastcap`)
+      const response = await api(`api/episodes/${epid}/fastcap`)
       const text = await response.text()
       if (!response.ok) {
         throw new Error(text.trim() || `HTTP ${response.status}`)

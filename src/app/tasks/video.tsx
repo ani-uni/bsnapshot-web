@@ -1,4 +1,13 @@
-import { Button, Card, Chip, Link, Separator, Spinner, Table, toast } from '@heroui/react'
+import {
+  Button,
+  Card,
+  Chip,
+  Link,
+  Separator,
+  Spinner,
+  Table,
+  toast,
+} from '@heroui/react'
 import { useAtomValue } from 'jotai'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link as RLink, useParams } from 'react-router'
@@ -114,7 +123,9 @@ function getAggregateStatusColor(
   }
 }
 
-function getVideoSourceState(videoSource: VideoSourceDetail | null): number | null {
+function getVideoSourceState(
+  videoSource: VideoSourceDetail | null,
+): number | null {
   if (!videoSource) return null
   if (!videoSource.deadAt) return 0
   return videoSource.upCanSee ? 1 : 2
@@ -132,7 +143,9 @@ export default function VideoDetailPage() {
     Record<string, Partial<Record<TaskType, TaskStatus>>>
   >({})
   const [isLoading, setIsLoading] = useState(false)
-  const [isTaskUpdating, setIsTaskUpdating] = useState<Record<TaskType, boolean>>({
+  const [isTaskUpdating, setIsTaskUpdating] = useState<
+    Record<TaskType, boolean>
+  >({
     RT: false,
     HIS: false,
     SP: false,
@@ -168,7 +181,8 @@ export default function VideoDetailPage() {
         aidCaptures.map(async (capture) => {
           try {
             const fetchTasksRes = await api(`api/tasks/fetch/${capture.cid}`)
-            if (!fetchTasksRes.ok) throw new Error(`HTTP ${fetchTasksRes.status}`)
+            if (!fetchTasksRes.ok)
+              throw new Error(`HTTP ${fetchTasksRes.status}`)
             const fetchTasks = (await fetchTasksRes.json()) as FetchTask[]
             return [capture.cid, fetchTasks] as const
           } catch {
@@ -177,8 +191,10 @@ export default function VideoDetailPage() {
         }),
       )
 
-      const nextTaskStatusByCid: Record<string, Partial<Record<TaskType, TaskStatus>>> =
-        {}
+      const nextTaskStatusByCid: Record<
+        string,
+        Partial<Record<TaskType, TaskStatus>>
+      > = {}
 
       for (const [cid, fetchTasks] of taskResults) {
         if (!fetchTasks) {
@@ -279,7 +295,9 @@ export default function VideoDetailPage() {
         }),
       )
 
-      const failedCount = results.filter((result) => result.status === 'rejected').length
+      const failedCount = results.filter(
+        (result) => result.status === 'rejected',
+      ).length
       const successCount = pendingCaptures.length - failedCount
 
       if (failedCount > 0) {
@@ -335,19 +353,27 @@ export default function VideoDetailPage() {
                     <Chip
                       size="sm"
                       variant="soft"
-                      color={getVideoSourceStatusColor(getVideoSourceState(videoSource))}
+                      color={getVideoSourceStatusColor(
+                        getVideoSourceState(videoSource),
+                      )}
                     >
-                      {getVideoSourceStatusLabel(getVideoSourceState(videoSource))}
+                      {getVideoSourceStatusLabel(
+                        getVideoSourceState(videoSource),
+                      )}
                     </Chip>
                   </div>
                 </div>
                 <div>
                   <div className="text-sm text-muted">上次健康检查</div>
-                  <div className="text-sm">{formatTimestamp(videoSource?.lastRunAt ?? null)}</div>
+                  <div className="text-sm">
+                    {formatTimestamp(videoSource?.lastRunAt ?? null)}
+                  </div>
                 </div>
                 <div>
                   <div className="text-sm text-muted">失效时间</div>
-                  <div className="text-sm">{formatTimestamp(videoSource?.deadAt ?? null)}</div>
+                  <div className="text-sm">
+                    {formatTimestamp(videoSource?.deadAt ?? null)}
+                  </div>
                 </div>
                 <div>
                   <div className="text-sm text-muted">原因</div>
@@ -396,7 +422,9 @@ export default function VideoDetailPage() {
                           </div>
                           <div className="text-xs text-muted">
                             启用 {task.enabledCount} / 禁用 {task.disabledCount}
-                            {task.missingCount > 0 ? ` / 未知 ${task.missingCount}` : ''}
+                            {task.missingCount > 0
+                              ? ` / 未知 ${task.missingCount}`
+                              : ''}
                           </div>
                         </div>
                       </div>
@@ -429,13 +457,17 @@ export default function VideoDetailPage() {
                         ) : (
                           <Button
                             size="sm"
-                            variant={task.state === 'disabled' ? 'outline' : 'danger'}
+                            variant={
+                              task.state === 'disabled' ? 'outline' : 'danger'
+                            }
                             isPending={isTaskUpdating[task.type]}
                             isDisabled={disableUPActions}
                             onPress={() =>
                               void handleSetTaskStatus(
                                 task.type,
-                                task.state === 'disabled' ? 'enabled' : 'disabled',
+                                task.state === 'disabled'
+                                  ? 'enabled'
+                                  : 'disabled',
                               )
                             }
                           >
@@ -467,13 +499,17 @@ export default function VideoDetailPage() {
                   </Table.Header>
                   <Table.Body
                     items={captures}
-                    renderEmptyState={() => <p className="text-muted">暂无采集</p>}
+                    renderEmptyState={() => (
+                      <p className="text-muted">暂无采集</p>
+                    )}
                   >
                     {(capture) => (
                       <Table.Row id={capture.cid}>
                         <Table.Cell>
                           <Link>
-                            <RLink to={`/tasks/captures/${capture.cid}`}>{capture.cid}</RLink>
+                            <RLink to={`/tasks/captures/${capture.cid}`}>
+                              {capture.cid}
+                            </RLink>
                           </Link>
                         </Table.Cell>
                         <Table.Cell>{formatTimestamp(capture.pub)}</Table.Cell>
@@ -481,9 +517,13 @@ export default function VideoDetailPage() {
                           <Chip
                             size="sm"
                             variant="soft"
-                            color={getVideoSourceStatusColor(capture.videoSourceState)}
+                            color={getVideoSourceStatusColor(
+                              capture.videoSourceState,
+                            )}
                           >
-                            {getVideoSourceStatusLabel(capture.videoSourceState)}
+                            {getVideoSourceStatusLabel(
+                              capture.videoSourceState,
+                            )}
                           </Chip>
                         </Table.Cell>
                       </Table.Row>

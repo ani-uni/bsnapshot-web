@@ -24,7 +24,6 @@ import {
   lastUsedDanmakuExportFormatAtom,
   type DanmakuExportFormat,
 } from '@/atoms/groups/export'
-import { apiBaseUrlAtom } from '@/atoms/api'
 import { usersAtom, usersAutoRefreshAtom } from '@/atoms/users'
 import { RequireConnection } from '@/components/RequireConnection'
 import { useApi } from '@/hooks/useApi'
@@ -223,7 +222,6 @@ function formatSeconds(s: number): string {
 export default function CaptureDetailPage() {
   const { cid } = useParams<{ cid: string }>()
   const api = useApi()
-  const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
   const users = useAtomValue(usersAtom)
   useAtomValue(usersAutoRefreshAtom)
   const navigate = useNavigate()
@@ -323,10 +321,8 @@ export default function CaptureDetailPage() {
       setLoadingClipIds((prev) => ({ ...prev, [clipId]: true }))
       try {
         const [normalRes, upRes] = await Promise.all([
-          fetch(`${apiBaseUrl}/api/tasks/clips/${clipId}/danmaku/stats`),
-          fetch(
-            `${apiBaseUrl}/api/tasks/clips/${clipId}/danmaku/stats?up=true`,
-          ),
+          api(`api/tasks/clips/${clipId}/danmaku/stats`),
+          api(`api/tasks/clips/${clipId}/danmaku/stats?up=true`),
         ])
 
         const normalData = normalRes.ok
@@ -426,8 +422,8 @@ export default function CaptureDetailPage() {
     setLastUsedFormat(option.format)
     setExportingKey(exportKey)
     try {
-      const exportUrl = `${apiBaseUrl}/api/tasks/captures/${cid}/danmaku/${option.format}${source.up ? '?up=true' : ''}`
-      const response = await fetch(exportUrl)
+      const exportUrl = `api/tasks/captures/${cid}/danmaku/${option.format}${source.up ? '?up=true' : ''}`
+      const response = await api(exportUrl)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const blob = await response.blob()
 

@@ -580,18 +580,15 @@ export default function AddCapture({
     setFastCapModalContent('')
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/tasks/captures/fastcap`, {
+      const response = await api('api/tasks/captures/fastcap', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          pagesToExport.map((page) => ({
-            clips: page.clips,
-            cid: page.cid,
-            aid: pregenEdit.aid || undefined,
-            pubdate: pregenEdit.pubdate || undefined,
-            upMid: pregenEdit.upMid || undefined,
-          })),
-        ),
+        json: pagesToExport.map((page) => ({
+          clips: page.clips,
+          cid: page.cid,
+          aid: pregenEdit.aid || undefined,
+          pubdate: pregenEdit.pubdate || undefined,
+          upMid: pregenEdit.upMid || undefined,
+        })),
       })
 
       const text = await response.text()
