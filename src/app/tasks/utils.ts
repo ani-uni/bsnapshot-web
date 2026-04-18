@@ -1,7 +1,8 @@
 import { Duration } from 'luxon'
 
-import type { SeasonEpisodeItem } from './types'
 import { formatSn } from '@/app/groups/sn'
+
+import type { SeasonEpisodeItem } from './types'
 
 export function secondsToHms(totalSeconds: number): string {
   return Duration.fromMillis(totalSeconds * 1000).toFormat('hh:mm:ss')

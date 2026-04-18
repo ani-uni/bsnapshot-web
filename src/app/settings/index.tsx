@@ -745,7 +745,9 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <NumberField
                     value={eventAutoDelTimeAwayDays ?? 0}
-                    onChange={(value) => setEventAutoDelTimeAwayDays(value ?? 0)}
+                    onChange={(value) =>
+                      setEventAutoDelTimeAwayDays(value ?? 0)
+                    }
                     validationBehavior="aria"
                     validate={validateEventConfigDays}
                     isInvalid={Boolean(eventDayValidation)}

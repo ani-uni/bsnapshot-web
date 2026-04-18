@@ -19,7 +19,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
 
 import { renderFilenameTemplate } from '@/app/groups/filename'
-import { apiBaseUrlAtom } from '@/atoms/api'
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
 import {
   danmakuExportFileNameTemplateAtom,
@@ -28,6 +27,7 @@ import {
 import EditableText from '@/components/EditableText'
 import FastCapModal, { type FastCapModalState } from '@/components/FastCapModal'
 import { TMDB_IMAGE_PREFIX } from '@/constants/tmdb'
+import { useApi } from '@/hooks/useApi'
 
 import { formatSn } from './sn'
 
@@ -243,7 +243,7 @@ function toTmdbImageUrl(path?: string | null) {
 
 export default function EpisodeDetailPage() {
   const { epid } = useParams<{ epid: string }>()
-  const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
+  const api = useApi()
   const navigate = useNavigate()
   const [, setBreadcrumbs] = useAtom(breadcrumbsAtom)
 
@@ -285,8 +285,8 @@ export default function EpisodeDetailPage() {
       setIsLoadingRef(true)
       try {
         if (data.tmdb) {
-          const res = await fetch(
-            `${apiBaseUrl}/api/episodes/3rd/tmdb/info?urlc=${encodeURIComponent(data.tmdb)}`,
+          const res = await api(
+            `api/episodes/3rd/tmdb/info?urlc=${encodeURIComponent(data.tmdb)}`,
           )
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const respData = (await res.json()) as {
@@ -294,8 +294,8 @@ export default function EpisodeDetailPage() {
           }
           setTmdbInfo(respData.tv.episode)
         } else if (data.bgmtv) {
-          const res = await fetch(
-            `${apiBaseUrl}/api/episodes/3rd/bgmtv/info?episode_id=${data.bgmtv}`,
+          const res = await api(
+            `api/episodes/3rd/bgmtv/info?episode_id=${data.bgmtv}`,
           )
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const respData = (await res.json()) as {
@@ -311,22 +311,20 @@ export default function EpisodeDetailPage() {
         setIsLoadingRef(false)
       }
     },
-    [apiBaseUrl],
+    [api],
   )
 
   const fetchEpisode = useCallback(async () => {
     if (!epid) return
     setIsLoading(true)
     try {
-      const res = await fetch(`${apiBaseUrl}/api/episodes/${epid}`)
+      const res = await api(`api/episodes/${epid}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as EpisodeDetail
       setEpisode(data)
 
       // Fetch associated captures
-      const capturesRes = await fetch(
-        `${apiBaseUrl}/api/episodes/${epid}/captures`,
-      )
+      const capturesRes = await api(`api/episodes/${epid}/captures`)
       if (capturesRes.ok) {
         const capturesData = (await capturesRes.json()) as CaptureItem[]
         setCaptureList(capturesData)
@@ -335,8 +333,8 @@ export default function EpisodeDetailPage() {
       setIsLoadingDanmaku(true)
       try {
         const [danmakuRes, upRes] = await Promise.all([
-          fetch(`${apiBaseUrl}/api/episodes/${epid}/danmaku/stats`),
-          fetch(`${apiBaseUrl}/api/episodes/${epid}/danmaku/stats?up=true`),
+          api(`api/episodes/${epid}/danmaku/stats`),
+          api(`api/episodes/${epid}/danmaku/stats?up=true`),
         ])
 
         const normalData = danmakuRes.ok
@@ -356,9 +354,7 @@ export default function EpisodeDetailPage() {
 
       let sTitle: string | null = null
       if (data.seasonId !== 'default') {
-        const seasonRes = await fetch(
-          `${apiBaseUrl}/api/seasons/${data.seasonId}`,
-        )
+        const seasonRes = await api(`api/seasons/${data.seasonId}`)
         if (seasonRes.ok) {
           const seasonData = (await seasonRes.json()) as {
             title: string | null
@@ -388,13 +384,12 @@ export default function EpisodeDetailPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [epid, apiBaseUrl, setBreadcrumbs, loadThirdPartyInfo])
+  }, [epid, api, setBreadcrumbs, loadThirdPartyInfo])
 
   const handleSaveTitle = async (title: string) => {
-    const res = await fetch(`${apiBaseUrl}/api/episodes/${epid}`, {
+    const res = await api(`api/episodes/${epid}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title }),
+      json: { title },
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = (await res.json()) as EpisodeDetail
@@ -417,7 +412,7 @@ export default function EpisodeDetailPage() {
   const handleDelete = async () => {
     setIsDeleting(true)
     try {
-      const res = await fetch(`${apiBaseUrl}/api/episodes/${epid}`, {
+      const res = await api(`api/episodes/${epid}`, {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -445,7 +440,7 @@ export default function EpisodeDetailPage() {
     setLastUsedFormat(option.format)
     setExportingKey(exportKey)
     try {
-      const exportUrl = `${apiBaseUrl}/api/episodes/${epid}/danmaku/${option.format}${source.up ? '?up=true' : ''}`
+      const exportUrl = `api/episodes/${epid}/danmaku/${option.format}${source.up ? '?up=true' : ''}`
       const response = await fetch(exportUrl)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const blob = await response.blob()
@@ -490,7 +485,7 @@ export default function EpisodeDetailPage() {
     setFastCapExportState({ status: 'loading', content: '' })
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/episodes/${epid}/fastcap`)
+      const response = await fetch(`api/episodes/${epid}/fastcap`)
       const text = await response.text()
       if (!response.ok) {
         throw new Error(text.trim() || `HTTP ${response.status}`)

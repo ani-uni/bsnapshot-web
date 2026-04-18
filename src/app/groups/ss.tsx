@@ -13,15 +13,15 @@ import {
   Table,
   toast,
 } from '@heroui/react'
-import { useAtom, useAtomValue } from 'jotai'
+import { useAtom } from 'jotai'
 import { ChevronRight, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
 
-import { apiBaseUrlAtom } from '@/atoms/api'
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
 import EditableText from '@/components/EditableText'
 import { TMDB_IMAGE_PREFIX } from '@/constants/tmdb'
+import { useApi } from '@/hooks/useApi'
 
 import { buildSnFromBgmtvEpisode, formatSn, bgmtvEpisodeComparator } from './sn'
 
@@ -183,7 +183,7 @@ function toTmdbImageUrl(path?: string | null) {
 
 export default function SeasonDetailPage() {
   const { ssid } = useParams<{ ssid: string }>()
-  const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
+  const api = useApi()
   const navigate = useNavigate()
   const [, setBreadcrumbs] = useAtom(breadcrumbsAtom)
 
@@ -225,7 +225,7 @@ export default function SeasonDetailPage() {
     if (!ssid) return
     setIsLoading(true)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/seasons/${ssid}`)
+      const response = await api(`api/seasons/${ssid}`)
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
@@ -237,9 +237,7 @@ export default function SeasonDetailPage() {
       ])
 
       // Fetch associated captures
-      const capturesRes = await fetch(
-        `${apiBaseUrl}/api/seasons/${ssid}/captures`,
-      )
+      const capturesRes = await api(`api/seasons/${ssid}/captures`)
       if (capturesRes.ok) {
         const capturesData = (await capturesRes.json()) as CaptureItem[]
         setCaptureList(capturesData)
@@ -250,12 +248,12 @@ export default function SeasonDetailPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [apiBaseUrl, ssid, setBreadcrumbs])
+  }, [api, ssid, setBreadcrumbs])
 
   const fetchEpisodeList = useCallback(async () => {
     if (!ssid) return
     try {
-      const response = await fetch(`${apiBaseUrl}/api/seasons/${ssid}/episodes`)
+      const response = await api(`api/seasons/${ssid}/episodes`)
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
@@ -265,13 +263,13 @@ export default function SeasonDetailPage() {
       const errorMsg = error instanceof Error ? error.message : '未知错误'
       toast.danger(`加载剧集列表失败：${errorMsg}`)
     }
-  }, [apiBaseUrl, ssid])
+  }, [api, ssid])
 
   const handleDeleteSeason = async () => {
     if (!ssid) return
     setIsDeleting(true)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/seasons/${ssid}`, {
+      const response = await api(`api/seasons/${ssid}`, {
         method: 'DELETE',
       })
       if (!response.ok) {
@@ -297,10 +295,9 @@ export default function SeasonDetailPage() {
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/seasons/${ssid}`, {
+      const response = await api(`api/seasons/${ssid}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title }),
+        json: { title },
       })
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -323,14 +320,10 @@ export default function SeasonDetailPage() {
   ): Promise<EpisodeItem | undefined> => {
     if (!ssid) return
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/api/seasons/${ssid}/episodes`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sn }),
-        },
-      )
+      const response = await api(`api/seasons/${ssid}/episodes`, {
+        method: 'POST',
+        json: { sn },
+      })
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
@@ -346,10 +339,9 @@ export default function SeasonDetailPage() {
     try {
       const episode = await handleCreateEpisode(1)
       if (!episode) return
-      const response = await fetch(`${apiBaseUrl}/api/episodes/${episode.id}`, {
+      const response = await api(`api/episodes/${episode.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: '正片' }),
+        json: { title: '正片' },
       })
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -369,10 +361,9 @@ export default function SeasonDetailPage() {
     ref?: { src: 'tmdb'; urlc: string } | { src: 'bgmtv'; episode_id: number },
   ) => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/episodes/${episodeId}`, {
+      const response = await api(`api/episodes/${episodeId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, ref }),
+        json: { title, ref },
       })
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -389,8 +380,8 @@ export default function SeasonDetailPage() {
 
     setIsLoadingTmdb(true)
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/api/seasons/3rd/tmdb/info?urlc=${encodeURIComponent(season.tmdb)}`,
+      const response = await api(
+        `api/seasons/3rd/tmdb/info?urlc=${encodeURIComponent(season.tmdb)}`,
       )
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -440,15 +431,15 @@ export default function SeasonDetailPage() {
     } finally {
       setIsLoadingTmdb(false)
     }
-  }, [apiBaseUrl, season])
+  }, [api, season])
 
   const loadTmdbEpisodes = useCallback(async () => {
     if (!season?.tmdb) return
 
     setIsLoadingTmdbEpisodes(true)
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/api/seasons/3rd/tmdb/eps?urlc=${encodeURIComponent(season.tmdb)}`,
+      const response = await api(
+        `api/seasons/3rd/tmdb/eps?urlc=${encodeURIComponent(season.tmdb)}`,
       )
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -461,7 +452,7 @@ export default function SeasonDetailPage() {
     } finally {
       setIsLoadingTmdbEpisodes(false)
     }
-  }, [apiBaseUrl, season])
+  }, [api, season])
 
   const handleOpenTmdbModal = () => {
     setShowTmdbModal(true)
@@ -510,8 +501,8 @@ export default function SeasonDetailPage() {
 
     setIsLoadingBgmtv(true)
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/api/seasons/3rd/bgmtv/info?subject_id=${season.bgmtv}`,
+      const response = await api(
+        `api/seasons/3rd/bgmtv/info?subject_id=${season.bgmtv}`,
       )
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -524,15 +515,15 @@ export default function SeasonDetailPage() {
     } finally {
       setIsLoadingBgmtv(false)
     }
-  }, [apiBaseUrl, season])
+  }, [api, season])
 
   const loadBgmtvEpisodes = useCallback(async () => {
     if (!season?.bgmtv) return
 
     setIsLoadingBgmtvEpisodes(true)
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/api/seasons/3rd/bgmtv/eps?subject_id=${season.bgmtv}`,
+      const response = await api(
+        `api/seasons/3rd/bgmtv/eps?subject_id=${season.bgmtv}`,
       )
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -545,7 +536,7 @@ export default function SeasonDetailPage() {
     } finally {
       setIsLoadingBgmtvEpisodes(false)
     }
-  }, [apiBaseUrl, season])
+  }, [api, season])
 
   const handleOpenBgmtvModal = () => {
     setShowBgmtvModal(true)

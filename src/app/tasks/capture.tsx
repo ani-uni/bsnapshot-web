@@ -20,13 +20,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link as RLink, useNavigate, useParams } from 'react-router'
 
 import LogEventsPanel from '@/app/events/module/LogEventsPanel'
-import { apiBaseUrlAtom } from '@/atoms/api'
 import {
   lastUsedDanmakuExportFormatAtom,
   type DanmakuExportFormat,
 } from '@/atoms/groups/export'
 import { usersAtom, usersAutoRefreshAtom } from '@/atoms/users'
 import { RequireConnection } from '@/components/RequireConnection'
+import { useApi } from '@/hooks/useApi'
 
 type CaptureDetail = {
   cid: string
@@ -221,7 +221,7 @@ function formatSeconds(s: number): string {
 
 export default function CaptureDetailPage() {
   const { cid } = useParams<{ cid: string }>()
-  const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
+  const api = useApi()
   const users = useAtomValue(usersAtom)
   useAtomValue(usersAutoRefreshAtom)
   const navigate = useNavigate()
@@ -253,9 +253,9 @@ export default function CaptureDetailPage() {
     setIsLoading(true)
     try {
       const [captureRes, clipsRes, fetchTasksRes] = await Promise.all([
-        fetch(`${apiBaseUrl}/api/tasks/captures/${cid}`),
-        fetch(`${apiBaseUrl}/api/tasks/captures/${cid}/clips`),
-        fetch(`${apiBaseUrl}/api/tasks/fetch/${cid}`),
+        api(`api/tasks/captures/${cid}`),
+        api(`api/tasks/captures/${cid}/clips`),
+        api(`api/tasks/fetch/${cid}`),
       ])
 
       if (!captureRes.ok)
@@ -278,7 +278,7 @@ export default function CaptureDetailPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [apiBaseUrl, cid])
+  }, [api, cid])
 
   const fetchDanmakuStats = useCallback(async () => {
     if (!cid) return
@@ -286,8 +286,8 @@ export default function CaptureDetailPage() {
     try {
       // 并行获取采集的弹幕统计（普通 + 创作中心）
       const [danmakuRes, upRes] = await Promise.all([
-        fetch(`${apiBaseUrl}/api/tasks/captures/${cid}/danmaku/stats`),
-        fetch(`${apiBaseUrl}/api/tasks/captures/${cid}/danmaku/stats?up=true`),
+        api(`api/tasks/captures/${cid}/danmaku/stats`),
+        api(`api/tasks/captures/${cid}/danmaku/stats?up=true`),
       ])
 
       const normalData = danmakuRes.ok
@@ -308,7 +308,7 @@ export default function CaptureDetailPage() {
     } finally {
       setIsLoadingDanmaku(false)
     }
-  }, [apiBaseUrl, cid])
+  }, [api, cid])
 
   const [loadingClipIds, setLoadingClipIds] = useState<Record<string, boolean>>(
     {},
@@ -377,13 +377,13 @@ export default function CaptureDetailPage() {
         })
       }
     },
-    [apiBaseUrl, loadingClipIds],
+    [api, loadingClipIds],
   )
 
   const fetchFetchTasks = useCallback(async () => {
     if (!cid) return
     try {
-      const fetchTasksRes = await fetch(`${apiBaseUrl}/api/tasks/fetch/${cid}`)
+      const fetchTasksRes = await api(`api/tasks/fetch/${cid}`)
 
       if (fetchTasksRes.ok) {
         const fetchTasksData = (await fetchTasksRes.json()) as FetchTask[]
@@ -394,13 +394,13 @@ export default function CaptureDetailPage() {
         `刷新获取任务失败：${error instanceof Error ? error.message : '未知错误'}`,
       )
     }
-  }, [apiBaseUrl, cid])
+  }, [api, cid])
 
   const handleDelete = async () => {
     if (!cid) return
     setIsDeleting(true)
     try {
-      const res = await fetch(`${apiBaseUrl}/api/tasks/captures/${cid}`, {
+      const res = await api(`api/tasks/captures/${cid}`, {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -456,10 +456,9 @@ export default function CaptureDetailPage() {
 
     setIsFetchTaskToggling((prev) => ({ ...prev, [type]: true }))
     try {
-      const res = await fetch(`${apiBaseUrl}/api/tasks/fetch/${cid}`, {
+      const res = await api(`api/tasks/fetch/${cid}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ types: [type] }),
+        json: { types: [type] },
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       await fetchData()
@@ -477,10 +476,9 @@ export default function CaptureDetailPage() {
 
     setIsFetchTaskRunning((prev) => ({ ...prev, [type]: true }))
     try {
-      const res = await fetch(`${apiBaseUrl}/api/tasks/fetch/${cid}/run`, {
+      const res = await api(`api/tasks/fetch/${cid}/run`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ types: [type], manual: true }),
+        json: { types: [type], manual: true },
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       toast.success(`${type} 任务已手动执行`)
@@ -636,7 +634,8 @@ export default function CaptureDetailPage() {
                     variant="tertiary"
                     isDisabled={
                       isLoading ||
-                      (danmakuStats?.count ?? 0) + (danmakuStats?.upCount ?? 0) ===
+                      (danmakuStats?.count ?? 0) +
+                        (danmakuStats?.upCount ?? 0) ===
                         0
                     }
                     onPress={() => setShowExportDialog(true)}
@@ -729,7 +728,10 @@ export default function CaptureDetailPage() {
                                           (option) => option.format === key,
                                         )
                                       if (!selectedOption) return
-                                      handleExportDanmaku(selectedOption, source)
+                                      handleExportDanmaku(
+                                        selectedOption,
+                                        source,
+                                      )
                                     }}
                                   >
                                     {DANMAKU_EXPORT_GROUPS.map((group) => (
@@ -738,7 +740,8 @@ export default function CaptureDetailPage() {
                                       >
                                         <Header>{group.label}</Header>
                                         {DANMAKU_EXPORT_OPTIONS.filter(
-                                          (option) => option.group === group.key,
+                                          (option) =>
+                                            option.group === group.key,
                                         ).map((option) => (
                                           <Dropdown.Item
                                             key={option.format}

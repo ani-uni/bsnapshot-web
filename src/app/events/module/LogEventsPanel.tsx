@@ -14,12 +14,12 @@ import {
   toast,
   Virtualizer,
 } from '@heroui/react'
-import { useAtom, useAtomValue } from 'jotai'
+import { useAtom } from 'jotai'
 import { RefreshCcw, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { apiBaseUrlAtom } from '@/atoms/api'
 import { type LogEvent, logEventsAtom } from '@/atoms/events'
+import { useApi } from '@/hooks/useApi'
 
 import {
   getLogStyles,
@@ -51,7 +51,7 @@ export default function LogEventsPanel({
   showClearButton = true,
   showReloadAllButton = true,
 }: LogEventsPanelProps) {
-  const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
+  const api = useApi()
   const [events, setEvents] = useAtom(logEventsAtom)
   const [levelFilter, setLevelFilter] = useState<LogLevelFilter>('all')
   const [containsFilter, setContainsFilter] = useState('')
@@ -268,7 +268,7 @@ export default function LogEventsPanel({
   const handleClear = useCallback(async () => {
     setIsClearing(true)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/events`, {
+      const response = await api('api/events', {
         method: 'DELETE',
       })
       if (!response.ok) {
@@ -284,7 +284,7 @@ export default function LogEventsPanel({
     } finally {
       setIsClearing(false)
     }
-  }, [apiBaseUrl, setEvents])
+  }, [api, setEvents])
 
   const handleToggleAutoRefresh = useCallback((next: boolean) => {
     const ok = setEventWsAutoRefresh(next)
@@ -296,7 +296,13 @@ export default function LogEventsPanel({
   useEffect(() => {
     setIsConnecting(true)
 
-    const base = new URL(apiBaseUrl)
+    const apiWithDefaults = api as unknown as {
+      defaults: { options: { prefixUrl: string | URL } }
+    }
+    const prefixUrl = apiWithDefaults.defaults.options.prefixUrl
+    const base = new URL(
+      typeof prefixUrl === 'string' ? prefixUrl : prefixUrl.toString(),
+    )
     const wsUrl = new URL('/api/events/_ws', base)
     wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:'
 
@@ -327,7 +333,7 @@ export default function LogEventsPanel({
     return () => {
       release()
     }
-  }, [apiBaseUrl, enqueueIncoming])
+  }, [api, enqueueIncoming])
 
   return (
     <div className="space-y-4">

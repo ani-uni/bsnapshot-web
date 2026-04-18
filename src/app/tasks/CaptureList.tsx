@@ -1,8 +1,9 @@
 import { Card, Chip, Link, Separator, Spinner, Table } from '@heroui/react'
-import { Link as RLink } from 'react-router'
 import { useAtomValue } from 'jotai'
+import { Link as RLink } from 'react-router'
 
 import { lastCreatedCaptureAidAtom } from '@/atoms/tasks/addCapture'
+
 import type { CaptureItem } from './types'
 
 function formatCaptureDate(dateString: string | null): string {

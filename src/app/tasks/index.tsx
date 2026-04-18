@@ -4,6 +4,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 
 import { apiBaseUrlAtom } from '@/atoms/api'
 import { RequireConnection } from '@/components/RequireConnection'
+import { useApi } from '@/hooks/useApi'
 
 import { CaptureList } from './CaptureList'
 import type { CaptureItem } from './types'
@@ -11,6 +12,7 @@ import type { CaptureItem } from './types'
 const AddCapture = lazy(() => import('./AddCapture'))
 
 export default function TasksPage() {
+  const api = useApi()
   const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
 
   const [captureList, setCaptureList] = useState<CaptureItem[]>([])
@@ -19,7 +21,7 @@ export default function TasksPage() {
   const fetchCaptures = useCallback(async () => {
     setIsLoadingCaptures(true)
     try {
-      const res = await fetch(`${apiBaseUrl}/api/tasks/captures`)
+      const res = await api('api/tasks/captures')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as CaptureItem[]
       setCaptureList(data)
@@ -29,7 +31,7 @@ export default function TasksPage() {
     } finally {
       setIsLoadingCaptures(false)
     }
-  }, [apiBaseUrl])
+  }, [api])
 
   useEffect(() => {
     void fetchCaptures()

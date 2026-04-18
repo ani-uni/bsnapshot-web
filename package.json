@@ -32,15 +32,16 @@
     "typecheck:frontend": "react-router typegen && tsc"
   },
   "dependencies": {
-    "@heroui/react": "^3.0.2",
-    "@heroui/styles": "^3.0.2",
+    "@heroui/react": "^3.0.3",
+    "@heroui/styles": "^3.0.3",
     "@internationalized/date": "^3.12.1",
     "@react-router/node": "^7.14.1",
     "clipboardy": "^5.3.1",
     "easyqrcodejs": "^4.6.2",
     "electron-squirrel-startup": "^1.0.1",
-    "isbot": "^5.1.38",
+    "isbot": "^5.1.39",
     "jotai": "^2.19.1",
+    "ky": "^2.0.1",
     "lucide-react": "^1.8.0",
     "luxon": "^3.7.2",
     "react": "^19.2.5",
@@ -71,7 +72,7 @@
     "oxfmt": "^0.45.0",
     "oxlint": "^1.60.0",
     "tailwindcss": "^4.2.2",
-    "typescript": "^6.0.2",
+    "typescript": "^6.0.3",
     "vite": "^8.0.8"
   }
 }

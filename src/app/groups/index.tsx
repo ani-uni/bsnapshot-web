@@ -9,14 +9,14 @@ import {
   Spinner,
   toast,
 } from '@heroui/react'
-import { useAtom, useAtomValue } from 'jotai'
+import { useAtom } from 'jotai'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import { apiBaseUrlAtom } from '@/atoms/api'
 import { breadcrumbsAtom } from '@/atoms/groups/breadcrumbs'
 import { TMDB_IMAGE_PREFIX } from '@/constants/tmdb'
+import { useApi } from '@/hooks/useApi'
 
 type SeriesItem = {
   season_id?: string
@@ -93,7 +93,7 @@ function toTmdbImageUrl(path?: string | null) {
 }
 
 export default function GroupsIndexPage() {
-  const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
+  const api = useApi()
   const navigate = useNavigate()
   const [, setBreadcrumbs] = useAtom(breadcrumbsAtom)
   const [seasonList, setSeasonList] = useState<SeriesItem[]>([])
@@ -138,7 +138,7 @@ export default function GroupsIndexPage() {
   const fetchSeasonList = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/seasons`)
+      const response = await api(`api/seasons`)
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
@@ -150,12 +150,12 @@ export default function GroupsIndexPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [apiBaseUrl])
+  }, [api])
 
   const fetchDefaultEpisodes = useCallback(async () => {
     setIsLoadingDefaultEpisodes(true)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/seasons/default/episodes`)
+      const response = await api(`api/seasons/default/episodes`)
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
@@ -170,12 +170,12 @@ export default function GroupsIndexPage() {
     } finally {
       setIsLoadingDefaultEpisodes(false)
     }
-  }, [apiBaseUrl])
+  }, [api])
 
   const handleCreateSeason = async () => {
     setIsCreating(true)
     try {
-      const response = await fetch(`${apiBaseUrl}/api/seasons`, {
+      const response = await api(`api/seasons`, {
         method: 'POST',
       })
       if (!response.ok) {
@@ -207,8 +207,8 @@ export default function GroupsIndexPage() {
 
     setIsSearchingTmdb(true)
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/api/seasons/3rd/tmdb/search?query=${encodeURIComponent(query)}`,
+      const response = await api(
+        `api/seasons/3rd/tmdb/search?query=${encodeURIComponent(query)}`,
       )
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -246,8 +246,8 @@ export default function GroupsIndexPage() {
         ) {
           const parsedSeriesId = parseTmdbSeriesIdFromUrlc(query)
           if (parsedSeriesId) {
-            const infoRes = await fetch(
-              `${apiBaseUrl}/api/seasons/3rd/tmdb/info?urlc=${encodeURIComponent(`tv/${parsedSeriesId}/season/1`)}`,
+            const infoRes = await api(
+              `api/seasons/3rd/tmdb/info?urlc=${encodeURIComponent(`tv/${parsedSeriesId}/season/1`)}`,
             )
             if (infoRes.ok) {
               const infoData = (await infoRes.json()) as {
@@ -310,8 +310,8 @@ export default function GroupsIndexPage() {
 
             if (result.media_type === 'tv') {
               try {
-                const infoRes = await fetch(
-                  `${apiBaseUrl}/api/seasons/3rd/tmdb/info?urlc=${encodeURIComponent(`tv/${result.id}/season/1`)}`,
+                const infoRes = await api(
+                  `api/seasons/3rd/tmdb/info?urlc=${encodeURIComponent(`tv/${result.id}/season/1`)}`,
                 )
                 if (!infoRes.ok) continue
                 const infoData = (await infoRes.json()) as {
@@ -355,7 +355,7 @@ export default function GroupsIndexPage() {
         if (!selected) continue
 
         // Create season
-        const createRes = await fetch(`${apiBaseUrl}/api/seasons`, {
+        const createRes = await api(`api/seasons`, {
           method: 'POST',
         })
         if (!createRes.ok) {
@@ -368,10 +368,9 @@ export default function GroupsIndexPage() {
         }
 
         // Update season with title and ref
-        const updateRes = await fetch(`${apiBaseUrl}/api/seasons/${ssid}`, {
+        const updateRes = await api(`api/seasons/${ssid}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          json: {
             title:
               selected.season_number === null
                 ? selected.series_name
@@ -380,7 +379,7 @@ export default function GroupsIndexPage() {
               src: 'tmdb',
               urlc: selected.urlc,
             },
-          }),
+          },
         })
         if (!updateRes.ok) {
           throw new Error(`更新失败：HTTP ${updateRes.status}`)
@@ -412,8 +411,8 @@ export default function GroupsIndexPage() {
 
     setIsSearchingBgmtv(true)
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/api/seasons/3rd/bgmtv/search?query=${encodeURIComponent(query)}`,
+      const response = await api(
+        `api/seasons/3rd/bgmtv/search?query=${encodeURIComponent(query)}`,
       )
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -473,12 +472,9 @@ export default function GroupsIndexPage() {
   const handleCreateDefaultEpisode = async () => {
     setIsCreatingDefaultEpisode(true)
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/api/seasons/default/episodes`,
-        {
-          method: 'POST',
-        },
-      )
+      const response = await api(`api/seasons/default/episodes`, {
+        method: 'POST',
+      })
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
@@ -506,7 +502,7 @@ export default function GroupsIndexPage() {
         if (!selected) continue
 
         // Create season
-        const createRes = await fetch(`${apiBaseUrl}/api/seasons`, {
+        const createRes = await api(`api/seasons`, {
           method: 'POST',
         })
         if (!createRes.ok) {
@@ -519,16 +515,15 @@ export default function GroupsIndexPage() {
         }
 
         // Update season with title and ref
-        const updateRes = await fetch(`${apiBaseUrl}/api/seasons/${ssid}`, {
+        const updateRes = await api(`api/seasons/${ssid}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          json: {
             title: selected.name_cn || selected.name,
             ref: {
               src: 'bgmtv',
               subject_id: selected.id,
             },
-          }),
+          },
         })
         if (!updateRes.ok) {
           throw new Error(`更新失败：HTTP ${updateRes.status}`)

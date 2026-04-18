@@ -1,8 +1,7 @@
 import { Button, Card, Modal, Surface } from '@heroui/react'
-import { useAtom } from 'jotai'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { apiBaseUrlAtom } from '@/atoms/api'
+import { useApi } from '@/hooks/useApi'
 
 type QueueTask = {
   id?: string | null
@@ -12,15 +11,6 @@ type QueueTask = {
     type?: string | null
     oid?: number | string | null
   } | null
-}
-
-const normalizeBaseUrl = (url: string) => {
-  try {
-    const urlObj = new URL(url)
-    return urlObj.origin + urlObj.pathname.replace(/\/$/, '')
-  } catch {
-    return url.replace(/\/$/, '')
-  }
 }
 
 const toSingleLineToml = (id?: string | null) => {
@@ -48,7 +38,7 @@ const formatStartTime = (value?: number | string) => {
 }
 
 export function QueueDisplay() {
-  const [apiBaseUrl] = useAtom(apiBaseUrlAtom)
+  const api = useApi()
   const [tasks, setTasks] = useState<QueueTask[]>([])
   const [, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,8 +52,7 @@ export function QueueDisplay() {
     setError(null)
 
     try {
-      const baseUrl = normalizeBaseUrl(apiBaseUrl)
-      const response = await fetch(`${baseUrl}/api/tasks/queue`)
+      const response = await api('api/tasks/queue')
       if (!response.ok) {
         throw new Error(`请求失败: ${response.status}`)
       }
@@ -75,7 +64,7 @@ export function QueueDisplay() {
     } finally {
       setIsLoading(false)
     }
-  }, [apiBaseUrl])
+  }, [api])
 
   useEffect(() => {
     fetchQueue()

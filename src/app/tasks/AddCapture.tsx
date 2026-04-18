@@ -26,7 +26,7 @@ import { fromAbsolute } from '@internationalized/date'
 import type { PrimitiveAtom } from 'jotai'
 import { useAtom, useAtomValue } from 'jotai'
 import { Plus, Trash2 } from 'lucide-react'
-import { memo, useCallback } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 
 import {
   addCaptureAllClipsHaveEpisodeAtom,
@@ -51,6 +51,7 @@ import {
   lastCreatedCaptureAidAtom,
 } from '@/atoms/tasks/addCapture'
 import FastCapModal from '@/components/FastCapModal'
+import { createApiClient } from '@/utils/apiFetch'
 
 import { ClipTimeInput } from './ClipTimeInput'
 import type {
@@ -132,7 +133,12 @@ const AddCapturePageItem = memo(function AddCapturePageItem({
     (clipIndex: number, field: 0 | 1, value: number) => {
       setPage((prev) => {
         const newClips = [...prev.clips]
-        const newClip = [...newClips[clipIndex]] as [number, number, number, string?]
+        const newClip = [...newClips[clipIndex]] as [
+          number,
+          number,
+          number,
+          string?,
+        ]
         newClip[field] = value
         newClips[clipIndex] = newClip
         return { ...prev, clips: newClips }
@@ -145,7 +151,12 @@ const AddCapturePageItem = memo(function AddCapturePageItem({
     (clipIndex: number, value: number) => {
       setPage((prev) => {
         const newClips = [...prev.clips]
-        const newClip = [...newClips[clipIndex]] as [number, number, number, string?]
+        const newClip = [...newClips[clipIndex]] as [
+          number,
+          number,
+          number,
+          string?,
+        ]
         newClip[2] = value
         newClips[clipIndex] = newClip
         return { ...prev, clips: newClips }
@@ -156,7 +167,8 @@ const AddCapturePageItem = memo(function AddCapturePageItem({
 
   const handleAddClip = useCallback(() => {
     setPage((prev) => {
-      const lastEnd = prev.clips.length > 0 ? prev.clips[prev.clips.length - 1][1] : 0
+      const lastEnd =
+        prev.clips.length > 0 ? prev.clips[prev.clips.length - 1][1] : 0
       return {
         ...prev,
         clips: [...prev.clips, [lastEnd, prev.duration, 0]],
@@ -179,7 +191,11 @@ const AddCapturePageItem = memo(function AddCapturePageItem({
       setPage((prev) => {
         const newClips = [...prev.clips]
         const clip = newClips[clipIndex]
-        const entry: [number, number, number, string?] = [clip[0], clip[1], clip[2]]
+        const entry: [number, number, number, string?] = [
+          clip[0],
+          clip[1],
+          clip[2],
+        ]
         if (episodeId) {
           entry.push(episodeId)
         }
@@ -268,7 +284,8 @@ const AddCapturePageItem = memo(function AddCapturePageItem({
                     selectionMode="single"
                     value={clip[3] ?? null}
                     onChange={(value) => {
-                      const episodeId = value && value !== '' ? String(value) : null
+                      const episodeId =
+                        value && value !== '' ? String(value) : null
                       handleClipEpisodeChange(clipIndex, episodeId)
                       if (episodeId) {
                         const section = episodeTree.find((s) =>
@@ -309,9 +326,13 @@ const AddCapturePageItem = memo(function AddCapturePageItem({
                             <ListBox.ItemIndicator />
                           </ListBox.Item>
                           {episodeTree.map((section) => (
-                            <ListBox.Section key={section.season?.id ?? '__default'}>
+                            <ListBox.Section
+                              key={section.season?.id ?? '__default'}
+                            >
                               <Header>
-                                {section.season ? section.season.title || '未命名' : '无归属'}
+                                {section.season
+                                  ? section.season.title || '未命名'
+                                  : '无归属'}
                               </Header>
                               {section.episodes.map((ep) => (
                                 <ListBox.Item
@@ -361,9 +382,7 @@ export default function AddCapture({
   const [isAdvancedMode, setIsAdvancedMode] = useAtom(
     addCaptureIsAdvancedModeAtom,
   )
-  const [fastcapManual, setFastcapManual] = useAtom(
-    addCaptureFastcapManualAtom,
-  )
+  const [fastcapManual, setFastcapManual] = useAtom(addCaptureFastcapManualAtom)
   const [isFetchingPregen, setIsFetchingPregen] = useAtom(
     addCaptureIsFetchingPregenAtom,
   )
@@ -397,24 +416,21 @@ export default function AddCapture({
   const [episodeTreeLoaded, setEpisodeTreeLoaded] = useAtom(
     addCaptureEpisodeTreeLoadedAtom,
   )
-  const [episodeSearch, setEpisodeSearch] = useAtom(
-    addCaptureEpisodeSearchAtom,
-  )
+  const [episodeSearch, setEpisodeSearch] = useAtom(addCaptureEpisodeSearchAtom)
   const [, setLastCreatedCaptureAid] = useAtom(lastCreatedCaptureAidAtom)
   const { contains } = useFilter({ sensitivity: 'base' })
+  const api = useMemo(() => createApiClient(apiBaseUrl), [apiBaseUrl])
 
   const fetchEpisodeTree = useCallback(async () => {
     try {
-      const seasonsRes = await fetch(`${apiBaseUrl}/api/seasons`)
+      const seasonsRes = await api(`api/seasons`)
       const seasons: Array<{ id: string; title: string | null }> = seasonsRes.ok
         ? await seasonsRes.json()
         : []
 
       const [defaultRes, ...seasonResults] = await Promise.all([
-        fetch(`${apiBaseUrl}/api/seasons/default/episodes`),
-        ...seasons.map((s) =>
-          fetch(`${apiBaseUrl}/api/seasons/${s.id}/episodes`),
-        ),
+        api(`api/seasons/default/episodes`),
+        ...seasons.map((s) => api(`api/seasons/${s.id}/episodes`)),
       ])
 
       const defaultEps: SeasonEpisodeItem[] = defaultRes.ok
@@ -440,7 +456,7 @@ export default function AddCapture({
     } catch {
       // silently fail
     }
-  }, [apiBaseUrl])
+  }, [api])
 
   const ensureEpisodeTree = useCallback(() => {
     if (!episodeTreeLoaded) {
@@ -466,13 +482,12 @@ export default function AddCapture({
 
     setIsFetchingPregen(true)
     try {
-      const res = await fetch(
-        `${apiBaseUrl}/api/tasks/pregen/${type}/${encodeURIComponent(input)}`,
+      const res = await api(
+        `api/tasks/pregen/${type}/${encodeURIComponent(input)}`,
         isAdvancedMode && manualFastcap
           ? {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fastcap_manual: manualFastcap }),
+              json: { fastcap_manual: manualFastcap },
             }
           : undefined,
       )
@@ -613,17 +628,16 @@ export default function AddCapture({
         const page = pagesToCreate[i]
         setCreationProgress({ current: i + 1, total: pagesToCreate.length })
 
-        const createRes = await fetch(`${apiBaseUrl}/api/tasks/captures/add`, {
+        const createRes = await api(`api/tasks/captures/add`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          json: {
             clips: page.clips,
             cid: page.cid,
             // 以下项若为 0 0n 或 '' 则不传，避免被后端当作无效值拒绝
             aid: pregenEdit.aid || undefined,
             pubdate: pregenEdit.pubdate || undefined,
             upMid: pregenEdit.upMid || undefined,
-          }),
+          },
         })
         if (!createRes.ok) {
           throw new Error(`P${page.page} 创建失败：HTTP ${createRes.status}`)
@@ -632,7 +646,7 @@ export default function AddCapture({
 
       // 保存最后创建的采集的 aid
       setLastCreatedCaptureAid(pregenEdit.aid)
-      
+
       toast.success('采集创建完成')
       setPregenEdit(null)
       setHasFastcapPreset(false)
@@ -661,9 +675,7 @@ export default function AddCapture({
         <div className="flex items-end gap-3">
           <Select
             value={idType}
-            onChange={(value) =>
-              setIdType(value === 'cid' ? 'cid' : 'auto')
-            }
+            onChange={(value) => setIdType(value === 'cid' ? 'cid' : 'auto')}
             className="w-28"
             variant="secondary"
           >

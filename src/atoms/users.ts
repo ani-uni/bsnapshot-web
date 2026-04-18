@@ -1,6 +1,8 @@
 import { atom } from 'jotai'
 import { unwrap } from 'jotai/utils'
 
+import { createApiClient } from '@/utils/apiFetch'
+
 import { apiBaseUrlAtom, serverInfoBaseRefreshAtom } from './api'
 
 /**
@@ -66,7 +68,8 @@ const usersBaseAtom = atom(async (get) => {
 
   usersPendingRequest = (async () => {
     try {
-      const response = await fetch(`${url}/api/auth/users`)
+      const client = createApiClient(url)
+      const response = await client('api/auth/users')
       if (!response.ok) return usersCache
 
       const users = (await response.json()) as User[]
@@ -114,14 +117,12 @@ export const loginWithCookiesAtom = atom(
 
     try {
       const url = get(apiBaseUrlAtom)
-      const response = await fetch(`${url}/api/auth/users/login/cookies`, {
+      const client = createApiClient(url)
+      const response = await client('api/auth/users/login/cookies', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        json: {
           bauth_cookies: cookies,
-        }),
+        },
       })
 
       if (!response.ok) {

@@ -1,10 +1,9 @@
 import { atom } from 'jotai'
 import { splitAtom, atomWithStorage } from 'jotai/utils'
 
-import type { FastCapModalState } from '@/components/FastCapModal'
 import type { PageEdit, PregenEdit } from '@/app/tasks/types'
-
 import type { EpisodeTreeSection } from '@/app/tasks/types'
+import type { FastCapModalState } from '@/components/FastCapModal'
 
 export const addCaptureIdTypeAtom = atom<'auto' | 'cid'>('auto')
 export const addCaptureIdInputAtom = atom('')
@@ -15,7 +14,9 @@ export const addCaptureIsFetchingPregenAtom = atom(false)
 const addCapturePregenMetaAtom = atom<Omit<PregenEdit, 'pages'> | null>(null)
 const addCapturePregenPagesAtom = atom<PageEdit[]>([])
 
-export const addCapturePregenPageAtomsAtom = splitAtom(addCapturePregenPagesAtom)
+export const addCapturePregenPageAtomsAtom = splitAtom(
+  addCapturePregenPagesAtom,
+)
 
 export const addCapturePregenEditAtom = atom(
   (get) => {
@@ -26,7 +27,14 @@ export const addCapturePregenEditAtom = atom(
       pages: get(addCapturePregenPagesAtom),
     }
   },
-  (get, set, update: PregenEdit | null | ((prev: PregenEdit | null) => PregenEdit | null)) => {
+  (
+    get,
+    set,
+    update:
+      | PregenEdit
+      | null
+      | ((prev: PregenEdit | null) => PregenEdit | null),
+  ) => {
     const meta = get(addCapturePregenMetaAtom)
     const prev = meta
       ? {

@@ -2,6 +2,8 @@ import { toast } from '@heroui/react'
 import { atom } from 'jotai'
 import { atomWithStorage, unwrap } from 'jotai/utils'
 
+import { createApiClient } from '@/utils/apiFetch'
+
 /**
  * API Base URL atom，自动持久化到 localStorage
  * 默认值：http://localhost:3000
@@ -45,7 +47,8 @@ const isServerConnectedBaseAtom = atom(async (get) => {
     const urlObj = new URL(url)
     const normalizedUrl = urlObj.origin + urlObj.pathname.replace(/\/$/, '')
 
-    const response = await fetch(`${normalizedUrl}/api`, {
+    const client = createApiClient(normalizedUrl)
+    const response = await client('api', {
       method: 'HEAD',
     })
 
@@ -430,7 +433,9 @@ export const saveEventConfigAtom = atom(
       const patch = get(eventPatchAtom)
       const sourcePayload = formData ?? patch
       const payload = Object.fromEntries(
-        Object.entries(sourcePayload).filter(([, value]) => value !== undefined),
+        Object.entries(sourcePayload).filter(
+          ([, value]) => value !== undefined,
+        ),
       ) as EventConfigPatch
       const url = get(apiBaseUrlAtom)
       const response = await fetch(`${url}/api/config/event`, {
