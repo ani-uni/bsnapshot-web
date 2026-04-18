@@ -14,11 +14,12 @@ import {
   toast,
   Virtualizer,
 } from '@heroui/react'
-import { useAtom } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
 import { RefreshCcw, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { type LogEvent, logEventsAtom } from '@/atoms/events'
+import { apiBaseUrlAtom } from '@/atoms/api'
 import { useApi } from '@/hooks/useApi'
 
 import {
@@ -52,6 +53,7 @@ export default function LogEventsPanel({
   showReloadAllButton = true,
 }: LogEventsPanelProps) {
   const api = useApi()
+  const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
   const [events, setEvents] = useAtom(logEventsAtom)
   const [levelFilter, setLevelFilter] = useState<LogLevelFilter>('all')
   const [containsFilter, setContainsFilter] = useState('')
@@ -296,13 +298,7 @@ export default function LogEventsPanel({
   useEffect(() => {
     setIsConnecting(true)
 
-    const apiWithDefaults = api as unknown as {
-      defaults: { options: { prefixUrl: string | URL } }
-    }
-    const prefixUrl = apiWithDefaults.defaults.options.prefixUrl
-    const base = new URL(
-      typeof prefixUrl === 'string' ? prefixUrl : prefixUrl.toString(),
-    )
+    const base = new URL(apiBaseUrl)
     const wsUrl = new URL('/api/events/_ws', base)
     wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:'
 
@@ -333,7 +329,7 @@ export default function LogEventsPanel({
     return () => {
       release()
     }
-  }, [api, enqueueIncoming])
+  }, [apiBaseUrl, enqueueIncoming])
 
   return (
     <div className="space-y-4">
