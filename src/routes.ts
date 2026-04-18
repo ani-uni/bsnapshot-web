@@ -12,6 +12,7 @@ export default [
     ...prefix('/tasks', [
       index('./app/tasks/index.tsx'),
       route('captures/:cid', './app/tasks/capture.tsx'),
+      route('videos/:aid', './app/tasks/video.tsx'),
     ]),
     ...prefix('/groups', [
       layout('./app/groups/layout.tsx', [

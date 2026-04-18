@@ -24,6 +24,7 @@ import {
   lastUsedDanmakuExportFormatAtom,
   type DanmakuExportFormat,
 } from '@/atoms/groups/export'
+import { apiBaseUrlAtom } from '@/atoms/api'
 import { usersAtom, usersAutoRefreshAtom } from '@/atoms/users'
 import { RequireConnection } from '@/components/RequireConnection'
 import { useApi } from '@/hooks/useApi'
@@ -222,6 +223,7 @@ function formatSeconds(s: number): string {
 export default function CaptureDetailPage() {
   const { cid } = useParams<{ cid: string }>()
   const api = useApi()
+  const apiBaseUrl = useAtomValue(apiBaseUrlAtom)
   const users = useAtomValue(usersAtom)
   useAtomValue(usersAutoRefreshAtom)
   const navigate = useNavigate()
