@@ -23,8 +23,6 @@ jobs:
             platform: linux-amd64
           - os: windows-latest
             platform: windows-amd64
-          - os: macos-latest
-            platform: darwin
 
     steps:
       - name: Generate a token
