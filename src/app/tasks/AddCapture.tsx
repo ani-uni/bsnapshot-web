@@ -26,7 +26,7 @@ import { fromAbsolute } from '@internationalized/date'
 import type { PrimitiveAtom } from 'jotai'
 import { useAtom, useAtomValue } from 'jotai'
 import { Plus, Trash2 } from 'lucide-react'
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useMemo, useRef } from 'react'
 
 import {
   addCaptureAllClipsHaveEpisodeAtom,
@@ -420,8 +420,12 @@ export default function AddCapture({
   const [, setLastCreatedCaptureAid] = useAtom(lastCreatedCaptureAidAtom)
   const { contains } = useFilter({ sensitivity: 'base' })
   const api = useMemo(() => createApiClient(apiBaseUrl), [apiBaseUrl])
+  const isFetchingEpisodeTreeRef = useRef(false)
 
   const fetchEpisodeTree = useCallback(async () => {
+    if (isFetchingEpisodeTreeRef.current) return
+
+    isFetchingEpisodeTreeRef.current = true
     try {
       const seasonsRes = await api(`api/seasons`)
       const seasons: Array<{ id: string; title: string | null }> = seasonsRes.ok
@@ -455,14 +459,17 @@ export default function AddCapture({
       setEpisodeTree(tree)
     } catch {
       // silently fail
+    } finally {
+      isFetchingEpisodeTreeRef.current = false
     }
   }, [api])
 
   const ensureEpisodeTree = useCallback(() => {
     if (!episodeTreeLoaded) {
       setEpisodeTreeLoaded(true)
-      void fetchEpisodeTree()
     }
+    // Always refresh on open so backend episode changes can be reflected.
+    void fetchEpisodeTree()
   }, [episodeTreeLoaded, fetchEpisodeTree])
 
   const handleFetchPregen = async () => {
