@@ -74,33 +74,6 @@ const startServer = async () => {
     console.error(`${COLOR.red}${data.toString()}${COLOR.reset}`)
     console.error(`${COLOR.red}[子进程 stderr] end${COLOR.reset}`)
   })
-  await new Promise<void>((resolve, reject) => {
-    let i: NodeJS.Timeout | null = null
-    let retryCount = 0
-    const maxRetries = 10
-    const c = async () => {
-      retryCount += 1
-      try {
-        const res = await fetch('http://localhost:45600/api/db/migrate', {
-          method: 'POST',
-        })
-        const data = await res.json()
-        if (data.success) {
-          if (i) {
-            clearInterval(i)
-            resolve()
-          }
-        }
-      } catch {}
-      if (retryCount >= maxRetries) {
-        if (i) clearInterval(i)
-        reject(new Error('数据库迁移失败：重试 10 次后仍未成功'))
-      }
-    }
-    i = setInterval(() => {
-      void c()
-    }, 1000)
-  })
 }
 
 app
