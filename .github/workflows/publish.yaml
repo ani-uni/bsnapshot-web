@@ -64,6 +64,10 @@ jobs:
           pnpm install
           pnpm -C ./backend install
 
+      - name: Install dependencies for darwin
+        if: ${{ matrix.platform == 'darwin' }}
+        run: pnpm -C ./backend install @libsql/darwin-x64
+
       - name: Build
         run: pnpm build
         env:
